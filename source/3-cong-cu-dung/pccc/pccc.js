@@ -190,9 +190,25 @@ function pcItemText(r,L){
 const PCX={colPx:380,textPx:398,emu:9525,gap:6};
 function pcTextPt(text,pt){const px=pt*4/3;let lines=0;for(const l of String(text).split('\n')){let w=0;for(const ch of l)w+=/[ᄀ-ᇿ⺀-鿿가-힣＀-￯]/.test(ch)?px:px*.56;lines+=Math.max(1,Math.ceil(w*1.1/PCX.textPx))}return lines*pt*1.24+10}
 function pcStyle(text,k){const left=k>1;for(const[pt,c,l]of[[18,15,21],[14,22,23],[11,24,25]]){const hpt=pcTextPt(text,pt);if(hpt<=400||pt===11)return{s:left?l:c,pt:hpt}}}
-function pcImgLayout(n,rowPx){if(!n)return{cols:0,w:0,h:0,rows:0,px:0};const cols=n===1?1:n<=6?2:3,rows=Math.ceil(n/cols);let w=Math.floor((PCX.colPx-(cols+1)*PCX.gap)/cols),hh=Math.round(w*3/4);
-  if(cols===1){hh=Math.round(clamp((rowPx||152)-2*PCX.gap,140,Math.round((PCX.colPx-2*PCX.gap)*3/4)));w=Math.round(hh*4/3)}
-  return{cols,w,h:hh,rows,px:rows*(hh+PCX.gap)+PCX.gap}}
+/* Ảnh trong Excel: mỗi dòng NG đúng MỘT ảnh, cùng một kích thước 4:3 cho mọi dòng, căn giữa ô.
+   Nhiều ảnh trong một hạng mục được ghép thành một ảnh lưới (2, 2x2, 3x2, 3x3…), mỗi ô vẫn có khung và số lỗi. */
+const PCI={w:344,h:258,pad:8,scale:4};
+const PCI_MINPT=Math.ceil((PCI.h+2*PCI.pad)*.75);
+function pcGrid(n){return n<=1?[1,1]:n===2?[2,1]:n<=4?[2,2]:n<=6?[3,2]:n<=9?[3,3]:[4,3]}
+async function pcCollage(pics){
+  const W=PCI.w*PCI.scale,H=PCI.h*PCI.scale,c=mk(W,H),g=c.getContext('2d');await fonts();
+  g.fillStyle='#FFFFFF';g.fillRect(0,0,W,H);
+  const[cols,rows]=pcGrid(pics.length),gap=pics.length>1?10:0,tw=(W-(cols-1)*gap)/cols,th=(H-(rows-1)*gap)/rows,max=cols*rows;
+  const shown=pics.slice(0,max);
+  for(const[i,pic]of shown.entries()){
+    const im=await ensureImg(pic.p);if(!im)continue;
+    const x=(i%cols)*(tw+gap),y=Math.floor(i/cols)*(th+gap),k=Math.min(tw,th);
+    drawUniform43(g,im,pic.p,pic.items,x,y,tw,th,{lw:Math.max(3,k/110),r:clamp(k/16,16,44),minFrac:.62});
+    g.strokeStyle='#CBD5E1';g.lineWidth=2;g.strokeRect(x+1,y+1,tw-2,th-2);
+  }
+  if(pics.length>max){const x=W-tw,y=H-th;g.fillStyle='rgba(15,23,42,.62)';g.fillRect(x,y,tw,th);g.fillStyle='#fff';g.font=`700 ${Math.round(th/4)}px ${fontD}`;g.textAlign='center';g.textBaseline='middle';g.fillText(`+${pics.length-max+1}`,x+tw/2,y+th/2)}
+  return toBlob(c,'image/jpeg',.88);
+}
 const pcCell=(ref,s,v)=>typeof v==='number'?`<c r="${ref}" s="${s}"><v>${v}</v></c>`:v?`<c r="${ref}" s="${s}" t="inlineStr"><is><t xml:space="preserve">${esc(v)}</t></is></c>`:`<c r="${ref}" s="${s}"/>`;
 function pcSetCell(body,ref,xml){const rx=new RegExp(`<c r="${ref}"(?: [^>/]*)?(?:/>|>[\\s\\S]*?</c>)`);if(!rx.test(body))throw new Error('Mẫu thiếu ô '+ref);return body.replace(rx,()=>xml)}
 let pcBusy=false;
@@ -217,19 +233,18 @@ async function pcExportXlsx(){
       const it=byRow.get(r);
       if(it){
         if(it.st==='NG'){const text=pcItemText(it,L),sty=pcStyle(text,it.ent.length),base=Number((attrs.match(/ht="([\d.]+)"/)||[])[1])||114;
-          const lay=pcImgLayout(it.pics.length,Math.max(base,Math.min(409,sty.pt))/.75),pt=Math.min(409,Math.max(base,sty.pt,lay.px*.75+6));
+          const pt=Math.min(409,Math.max(base,sty.pt,it.pics.length?PCI_MINPT:0));
           attrs=attrs.replace(/ht="[\d.]+"/,`ht="${pt.toFixed(1)}"`);
           body=pcSetCell(body,'F'+r,pcCell('F'+r,15,0));body=pcSetCell(body,'G'+r,pcCell('G'+r,15,'NG'));body=pcSetCell(body,'H'+r,pcCell('H'+r,sty.s,text));
-          const rowPx=pt/.75,usedW=lay.cols*lay.w+(lay.cols-1)*PCX.gap,x0=Math.max(PCX.gap,Math.round((PCX.colPx-usedW)/2)),usedH=lay.rows*lay.h+(lay.rows-1)*PCX.gap,y0=Math.max(3,Math.round((rowPx-usedH)/2));
-          it.pics.forEach((pic,i)=>{no++;const cx=i%lay.cols,cy=Math.floor(i/lay.cols),x=x0+cx*(lay.w+PCX.gap),y=y0+cy*(lay.h+PCX.gap);
-            media.push({no,pic});
+          if(it.pics.length){no++;const rowPx=pt/.75,x=Math.round((PCX.colPx-PCI.w)/2),y=Math.max(3,Math.round((rowPx-PCI.h)/2));
+            media.push({no,pics:it.pics});
             rels+=`<Relationship Id="rId${no}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/image${no}.jpeg"/>`;
-            pics+=`<xdr:oneCellAnchor><xdr:from><xdr:col>8</xdr:col><xdr:colOff>${x*PCX.emu}</xdr:colOff><xdr:row>${r-1}</xdr:row><xdr:rowOff>${y*PCX.emu}</xdr:rowOff></xdr:from><xdr:ext cx="${lay.w*PCX.emu}" cy="${lay.h*PCX.emu}"/><xdr:pic><xdr:nvPicPr><xdr:cNvPr id="${no+1}" name="HM${it.v.no} anh ${i+1}"/><xdr:cNvPicPr><a:picLocks noChangeAspect="1"/></xdr:cNvPicPr></xdr:nvPicPr><xdr:blipFill><a:blip r:embed="rId${no}"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill><xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${lay.w*PCX.emu}" cy="${lay.h*PCX.emu}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr></xdr:pic><xdr:clientData/></xdr:oneCellAnchor>`});
+            pics+=`<xdr:oneCellAnchor><xdr:from><xdr:col>8</xdr:col><xdr:colOff>${x*PCX.emu}</xdr:colOff><xdr:row>${r-1}</xdr:row><xdr:rowOff>${y*PCX.emu}</xdr:rowOff></xdr:from><xdr:ext cx="${PCI.w*PCX.emu}" cy="${PCI.h*PCX.emu}"/><xdr:pic><xdr:nvPicPr><xdr:cNvPr id="${no+1}" name="HM${it.v.no} anh"/><xdr:cNvPicPr><a:picLocks noChangeAspect="1"/></xdr:cNvPicPr></xdr:nvPicPr><xdr:blipFill><a:blip r:embed="rId${no}"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill><xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${PCI.w*PCX.emu}" cy="${PCI.h*PCX.emu}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr></xdr:pic><xdr:clientData/></xdr:oneCellAnchor>`}
         }else{body=pcSetCell(body,'F'+r,pcCell('F'+r,8,it.v.pts));body=pcSetCell(body,'G'+r,pcCell('G'+r,8,'OK'))}
       }
       if(r===RBA.tpl.last+1)body=body.replace(/(<c r="F\d+"[^>]*>[\s\S]*?<v>)[^<]*(<\/v>)/,`$1${score}$2`);
       return`<row r="${rn}"${attrs}>${body}</row>`});
-    for(const{no:k,pic}of media)put(`xl/media/image${k}.jpeg`,await photoCell(pic.p,pic.items));
+    for(const{no:k,pics:ps}of media)put(`xl/media/image${k}.jpeg`,await pcCollage(ps));
     put('xl/worksheets/sheet1.xml',sh);
     put('xl/drawings/drawing1.xml',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">${pics}</xdr:wsDr>`);
     put('xl/drawings/_rels/drawing1.xml.rels',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${rels}</Relationships>`);
