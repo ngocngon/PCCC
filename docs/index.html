@@ -12,7 +12,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Audit PCCC">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Audit PCCC v1.0.3</title>
+<title>Audit PCCC v1.0.4</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap">
 <style>
 /* Bàn soát ảnh EHS: ảnh hiện trường trên nền tối, biển báo an toàn làm ngôn ngữ thị giác (số hiệu bát giác / thoi / tròn theo mức độ).
@@ -1142,6 +1142,14 @@ details.cg>summary small{font-size:12px;color:var(--muted,#5b6670);font-weight:6
 .pc-altlist h4{margin:0 0 4px;font-size:14px;color:#92400E}.pc-altlist .hint{margin:0 0 8px}
 .pc-alti{display:flex;gap:10px;align-items:flex-start;padding:6px 0;border-top:1px dashed rgba(180,83,9,.3)}
 .pc-alti>div{display:grid;gap:6px;flex:1;min-width:0;font-size:12.5px}
+/* v1.0.4 nút chọn nhanh hạng mục */
+.pc-qw{display:inline-flex;align-items:center;gap:4px;max-width:260px}
+.pc-qw .pc-ql{white-space:nowrap;font-size:11px;color:#B91C1C;font-weight:700}
+.pc-qw.mob{max-width:100%;flex-wrap:nowrap}
+.pc-qw .pc-qa{color:#B45309;font-weight:700}
+select.pc-q{max-width:230px;font:600 12px/1.2 inherit;padding:5px 6px;border:1.5px solid #B91C1C;border-radius:8px;background:#FEF2F2;color:#7F1D1D;cursor:pointer}
+.pc-qw.empty select.pc-q{border-style:dashed;background:#FFF7ED;color:#9A3412}
+.pc-qw.mob select.pc-q{max-width:calc(100vw - 120px)}
 
 </style>
 </head>
@@ -1149,7 +1157,7 @@ details.cg>summary small{font-size:12px;color:var(--muted,#5b6670);font-weight:6
 
 <div id="app" data-view="review">
   <header class="top">
-    <img class="applogo" src="icon-192.png" alt="" width="34" height="34"><div class="brand"><b>Audit PCCC<small class="ver">v1.0.3</small></b><span id="brandSub">Checklist PCCC · 25 hạng mục · 100 điểm</span></div>
+    <img class="applogo" src="icon-192.png" alt="" width="34" height="34"><div class="brand"><b>Audit PCCC<small class="ver">v1.0.4</small></b><span id="brandSub">Checklist PCCC · 25 hạng mục · 100 điểm</span></div>
     <button class="chip empty" id="chip" title="Thông tin audit, báo cáo và dữ liệu"><b id="chipU">Nhập thông tin audit</b><small id="chipD"></small></button>
     <span class="net" id="net" hidden><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 8.5a15 15 0 0120 0M5.5 12a10 10 0 0113 0M9 15.5a5 5 0 016 0"/><path d="M3 3l18 18"/></svg>Mất mạng</span>
     <span class="spacer"></span>
@@ -1334,7 +1342,7 @@ details.cg>summary small{font-size:12px;color:var(--muted,#5b6670);font-weight:6
       <button class="btn" id="tClear">Xóa lọc</button></div>
     <div class="tflt-bar" id="tActiveFlt" hidden></div>
     <div class="tsel" id="tSel" hidden></div>
-    <div class="tscroll"><table class="ftab"><thead><tr><th class="c0"><input type="checkbox" id="tAll" aria-label="Chọn tất cả lỗi đang hiện"></th><th>#</th><th>Ảnh</th><th>Khu vực</th><th>Nội dung lỗi</th><th>Hạng mục</th><th>Mức độ</th><th>Loại</th><th>Hạn</th><th>Trạng thái</th><th></th></tr></thead><tbody id="tBody"></tbody></table></div>
+    <div class="tscroll"><table class="ftab"><thead><tr><th class="c0"><input type="checkbox" id="tAll" aria-label="Chọn tất cả lỗi đang hiện"></th><th>#</th><th>Ảnh</th><th>Khu vực</th><th>Nội dung lỗi</th><th>Hạng mục (bấm để đổi)</th><th>Mức độ</th><th>Loại</th><th>Hạn</th><th>Trạng thái</th><th></th></tr></thead><tbody id="tBody"></tbody></table></div>
     <p class="hint" id="tFoot"></p>
   </div></section>
   <section class="spage" id="settings" aria-label="Cài đặt hệ thống"><div class="dwrap">
@@ -1380,7 +1388,7 @@ details.cg>summary small{font-size:12px;color:var(--muted,#5b6670);font-weight:6
             <li><b>Priority:</b> nguy hiểm tức thời đến tính mạng hoặc sự cố lớn, phải xử lý ngay trong ca. Được đánh dấu Mandatory.</li>
             <li><b>Major:</b> vi phạm rõ yêu cầu hoặc pháp luật, có thể gây chấn thương hoặc sự cố nếu không sửa.</li>
             <li><b>Minor:</b> rủi ro thấp hoặc mối nguy tiềm ẩn chưa có điều kiện gây sự cố ngay, sửa nhanh được.</li>
-            <li>Lỗi khớp danh mục dùng đúng mức gợi ý của danh mục. Lỗi ngoài danh mục (KHAC) do AI xác định theo 3 tiêu chí trên; người đánh giá luôn sửa được.</li>
+            <li>Lỗi khớp danh mục dùng đúng mức gợi ý của danh mục. Lỗi không khớp lỗi mẫu nào do AI xác định theo 3 tiêu chí trên; người đánh giá luôn sửa được.</li>
           </ul>
         </details>
         <button class="btn" id="cfApply">Áp lại tiêu chí cho các lỗi hiện có</button>
@@ -1617,7 +1625,7 @@ function pickWatch(){
 }
 const isZipF=f=>/\.zip$/i.test(f.name)||/zip/.test(f.type||''),isImgF=f=>(f.type||'').startsWith('image/')||/\.(jpe?g|png|webp|heic|heif)$/i.test(f.name);
 /* ---------- Bản cài trên điện thoại: cài app, chạy khi mất mạng, cài đặt AI ---------- */
-const APP_VER='1.0.3';
+const APP_VER='1.0.4';
 const IOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
 const STANDALONE=()=>!!(navigator.standalone||(window.matchMedia&&matchMedia('(display-mode: standalone)').matches));
 function offerSave(f){
@@ -2022,7 +2030,7 @@ function renderTable(){
       h('td',null,h('img',{src:p.thumb,alt:`Ảnh ${pi+1}`,onclick:()=>edit(p,f)})),
       h('td',null,p.area||'Chưa ghi'),
       h('td',null,h('div',{class:'tt',onclick:()=>iToggle(f)},f.pending?'AI đang xác định lỗi…':(f.title||'Chưa có nội dung lỗi')),dupTag(p,f)),
-      h('td',{class:'nowrap'},f.req||f.code||'—'),
+      h('td',{class:'nowrap'},pcQuick(p,f)),
       h('td',null,f.sev?h('span',{class:'pill '+f.sev},f.sev):'—'),
       h('td',null,KINDS[kindOf(f)]),
       h('td',{class:'nowrap'},due?vnDate(due):'—'),
@@ -2454,8 +2462,10 @@ const tier=()=>$('optMode').value||'default';
 try{$('optMode').value=localStorage.getItem('soat-pccc-mode')||'default';$('optBg').checked=localStorage.getItem('soat-pccc-bg')!=='0'}catch{}
 $('optMode').addEventListener('change',e=>{try{localStorage.setItem('soat-pccc-mode',e.target.value)}catch{}toast(`Chế độ soát: ${e.target.selectedOptions[0].textContent}.`)});
 $('optBg').addEventListener('change',e=>{try{localStorage.setItem('soat-pccc-bg',e.target.checked?'1':'0')}catch{}if(!e.target.checked)bgStop();else bgAdd(pendingPhotos())});
-const CATALOG=()=>RBA.rules.map(r=>`${r.id} | ${RBA.codes[r.c].no?'hạng mục '+RBA.codes[r.c].no:'EHS khác'} | ${r.t} | dấu hiệu: ${r.k} | ${r.kd==='hazard'?'hazard':'violation'} | gợi ý ${r.v}`).join('\n');
-const CODEDIR=()=>RBA.order.map(c=>{const v=RBA.codes[c];return `${c} = hạng mục ${v.no} (${v.pts} điểm, nhóm ${v.g})${v.doc?' [chủ yếu kiểm tra bằng hồ sơ]':''}: ${v.vi}`}).join('\n')+`\nEH000 = ${RBA.codes.EH000.vi}`;
+const CATALOG=()=>[...RBA.order,'EH000'].map(c=>{const v=RBA.codes[c],rs=RBA.rules.filter(r=>r.c===c);return `${c} | ${v.no?`HẠNG MỤC ${v.no} (${v.pts} điểm, nhóm ${v.g})`:'EHS NGUY HIỂM KHÁC (không tính điểm)'}
+  Yêu cầu của checklist: ${v.vi}${v.ko?` / ${v.ko}`:''}
+${rs.map(r=>`  - ${r.id}: ${r.t} | dấu hiệu: ${r.k} | ${r.kd==='hazard'?'hazard':'violation'} | gợi ý ${r.v}`).join('\n')}`}).join('\n\n');
+const CODEDIR=()=>'';
 const BASE=p=>`Bạn là chuyên gia đánh giá an toàn phòng cháy chữa cháy (PCCC) tại nhà máy ở Việt Nam. Bạn soát ảnh hiện trường và chấm theo CHECKLIST KIỂM TRA PCCC gồm 25 hạng mục, tổng 100 điểm. Hạng mục nào có lỗi thì bị 0 điểm.
 
 PHẠM VI (rất quan trọng)
@@ -2475,7 +2485,7 @@ NGUYÊN TẮC
 - Viết tiếng Việt có dấu, ngắn và rõ.
 - "confidence" là số nguyên từ 0 đến 100, thể hiện mức chắc chắn rằng lỗi có thật.
 - Mỗi vị trí chỉ có một khung và các khung không được chồng lên nhau. Nhiều lỗi cùng hạng mục ở cùng một vị trí thì gộp thành một lỗi, nêu đủ trong "title". Lỗi nặng hơn đứng trước.
-- "title" viết như một dòng "Nội dung vấn đề" trong checklist, nêu rõ vật thể và hiện trạng, ví dụ "Có 3 cửa thoát nạn bị khóa niêm phong, không mở được" hoặc "Dây điện ra khỏi hộp đấu nối không có đầu siết cáp, đầu dây quấn băng keo treo ngoài hộp". "title" và "evidence" chỉ nêu hiện trạng nhìn thấy, không nêu cách khắc phục, không dùng "cần", "phải", "nên". "fix_now" và "fix_root" mỗi mục không quá 25 từ.
+- "title" bám sát yêu cầu của hạng mục đã chọn trong checklist, viết như một dòng "Nội dung vấn đề", nêu rõ vật thể và hiện trạng, ví dụ "Có 3 cửa thoát nạn bị khóa niêm phong, không mở được" hoặc "Dây điện ra khỏi hộp đấu nối không có đầu siết cáp, đầu dây quấn băng keo treo ngoài hộp". "title" và "evidence" chỉ nêu hiện trạng nhìn thấy, không nêu cách khắc phục, không dùng "cần", "phải", "nên". "fix_now" và "fix_root" mỗi mục không quá 25 từ.
 - "cause": Facility khi lỗi do thiếu hoặc hỏng thiết bị, hạ tầng, phải lắp đặt hay sửa chữa. Administrative khi lỗi do quản lý, sắp xếp, hành vi, hồ sơ.
 - "mandatory": true chỉ khi mức độ là Priority. Còn lại là false.
 
@@ -2490,7 +2500,7 @@ Sau đó rà thêm một lượt riêng cho lỗi EHS nguy hiểm khác (EH000).
 2. Phân loại, cả hai loại đều là lỗi phải báo cáo:
 - "violation" (Vi phạm): hiện trạng trái trực tiếp với yêu cầu của hạng mục. Ví dụ cửa thoát nạn bị khóa, đầu báo cháy bị tuột dây.
 - "hazard" (Mối nguy tiềm ẩn): hiện trạng chưa gây sự cố nhưng có thể dẫn tới cháy, nổ, cháy lan. Ví dụ dây đi tự do trong trần, vết cháy sém ở đầu cos, bụi bám dày trên động cơ.
-3. Gán đúng hạng mục: chọn id trong danh mục có dấu hiệu khớp nhất; hạng mục lấy theo danh mục. Lỗi thuộc một hạng mục nhưng không có id khớp thì dùng "rule":"KHAC" và ghi mã hạng mục vào "rba_code". Chọn hạng mục theo VẬT THỂ và bản chất mối nguy, không theo tên khu vực.
+3. Gán đúng hạng mục (QUAN TRỌNG NHẤT): so hiện trạng nhìn thấy với "Yêu cầu của checklist" của 25 hạng mục bên dưới, chọn hạng mục có yêu cầu bị vi phạm trực tiếp và ghi mã vào "item" (HM001 đến HM025; EH000 nếu là lỗi EHS nguy hiểm ngoài checklist). Chỉ dùng 25 hạng mục của checklist này, không dùng nhóm hay danh mục nào khác. Chọn theo VẬT THỂ và bản chất mối nguy, không theo tên khu vực. Sau đó, nếu một lỗi mẫu NẰM TRONG chính hạng mục đó khớp với hiện trạng thì ghi id vào "rule"; không có thì để "rule" trống. Không bao giờ chọn lỗi mẫu của hạng mục khác với "item".
 4. Mức độ theo hậu quả có thể xảy ra (xem MỨC ĐỘ).
 5. Không đưa vào findings mà ghi vào "verify": điều không nhìn thấy, điều cần hồ sơ hoặc góc chụp khác, điều chưa chắc (confidence dưới 60).
 
@@ -2498,18 +2508,15 @@ MỨC ĐỘ
 - Priority: nguy hiểm tức thời đến tính mạng hoặc có thể gây cháy lớn, phải xử lý ngay trong ca.
 - Major: vi phạm rõ yêu cầu, có thể gây cháy, cháy lan hoặc cản trở chữa cháy, thoát nạn nếu không sửa.
 - Minor: rủi ro thấp hoặc mối nguy tiềm ẩn chưa có điều kiện gây sự cố ngay, sửa nhanh được.
-${CFG.sevLock?'Mức độ lấy đúng mức gợi ý của danh mục cho id đã chọn, không tự tăng hay giảm. Chỉ khi "rule" là KHAC mới tự xác định mức độ theo các tiêu chí trên. Không nâng mức vì lỗi lặp lại hay vì khu vực quan trọng.':'Mức gợi ý trong danh mục có thể tăng hoặc giảm theo tình huống thực tế trong ảnh.'}
+${CFG.sevLock?'Mức độ lấy đúng mức gợi ý của danh mục cho id đã chọn, không tự tăng hay giảm. Chỉ khi "rule" để trống mới tự xác định mức độ theo các tiêu chí trên. Không nâng mức vì lỗi lặp lại hay vì khu vực quan trọng.':'Mức gợi ý trong danh mục có thể tăng hoặc giảm theo tình huống thực tế trong ảnh.'}
 Mức độ chỉ để xếp thứ tự ưu tiên khắc phục. Điểm của checklist không phụ thuộc mức độ: hạng mục có bất kỳ lỗi nào đã xác nhận đều bị 0 điểm.
 
-${HANDB_PROMPT()}DANH MỤC LỖI (id | hạng mục | lỗi | dấu hiệu | loại | mức gợi ý)
+${HANDB_PROMPT()}25 HẠNG MỤC CỦA CHECKLIST PCCC VÀ LỖI MẪU TRONG TỪNG HẠNG MỤC (mã | hạng mục; yêu cầu nguyên văn của checklist; các lỗi mẫu: id: lỗi | dấu hiệu | loại | mức gợi ý)
 ${CATALOG()}
-
-25 HẠNG MỤC CỦA CHECKLIST (dùng khi "rule" là KHAC: ghi mã vào "rba_code")
-${CODEDIR()}
 
 THÔNG TIN RIÊNG CHO LẦN SOÁT NÀY
 ${lessonsFor(p)}${libFor(p)}${docsFor(p)}`;
-const FIND=`"rule":"id trong danh mục hoặc KHAC","rba_code":"chỉ khi KHAC: mã hạng mục HM001 đến HM025, hoặc EH000","kind":"violation|hazard","title":"một câu nêu đúng lỗi nhìn thấy","evidence":"chi tiết trong ảnh chứng minh lỗi","severity":"Priority|Major|Minor","cause":"Facility|Administrative","mandatory":false,"confidence":85,"fix_now":"việc làm ngay tại chỗ","fix_root":"khắc phục triệt để, ngăn tái diễn"`;
+const FIND=`"item":"mã hạng mục HM001 đến HM025, hoặc EH000 (bắt buộc)","rule":"id lỗi mẫu thuộc đúng hạng mục đã chọn, hoặc để trống","kind":"violation|hazard","title":"một câu nêu đúng lỗi nhìn thấy","evidence":"chi tiết trong ảnh chứng minh lỗi","severity":"Priority|Major|Minor","cause":"Facility|Administrative","mandatory":false,"confidence":85,"fix_now":"việc làm ngay tại chỗ","fix_root":"khắc phục triệt để, ngăn tái diễn"`;
 /* Thời hạn kiểm định, bảo dưỡng, tem nhãn: căn cứ đã tra cứu (mục có c:1 cần xác nhận lại với văn bản gốc) */
 const HANDB=[
  {t:'Bình chữa cháy',p:'Bảo dưỡng ít nhất 6 tháng/lần (TCVN 7435-2: 6–12 tháng); tự kiểm tra hằng tháng',b:'QCVN 10:2025/BCA mục 1.5.13; TCVN 7435-2; TT 36/2025/TT-BCA',v:'Major',id:'E16'},
@@ -2525,7 +2532,7 @@ const HANDB_PROMPT=()=>`THỜI HẠN KIỂM ĐỊNH, BẢO DƯỠNG VÀ TEM NHÃ
 - Chỉ áp dụng cho phương tiện PCCC và hồ sơ công việc có lửa. Tem, nhãn của thiết bị khác (xe nâng, cân, hóa chất, thực phẩm) không thuộc phạm vi.
 - Còn hạn dưới 30 ngày: không phải lỗi, ghi vào "verify" để nhắc.
 - Không đọc rõ ngày hoặc chỉ thấy một phần: không kết luận, ghi vào "verify" (cần kiểm tra hồ sơ).
-${HANDB.map(x=>`- ${x.t}: ${x.p} (${x.b}) → id ${x.id}`).join('\n')}
+${HANDB.map(x=>`- ${x.t}: ${x.p} (${x.b}) → ${RULES[x.id]?`item ${RULES[x.id].c}, rule ${x.id}`:'chọn hạng mục phù hợp nhất trong 25 hạng mục, rule để trống'}`).join('\n')}
 
 `;
 const ctx=p=>[`NGÀY AUDIT: ${vnDate($('mDate').value||today())}`,p.area&&`Khu vực: ${p.area}`,p.note&&`Ghi chú của người đánh giá: ${p.note}`].filter(Boolean).join('\n')||'Người đánh giá chưa ghi chú khu vực.';
@@ -2649,14 +2656,16 @@ function splitGroupsByCode(groups){
 }
 window.resolveRbaCode=resolveRbaCode;window.tplMetaFor=tplMetaFor;window.splitGroupsByCode=splitGroupsByCode;
 function fillAI(f,a,keep0){
-  const r=RULES[a.rule];f.rule=r?r.id:'';f.title=str(a.title)||(r?r.t:'');f.ev=str(a.evidence);
+  const im=String(a.item||'').toUpperCase().match(/\b(HM\d{3}|EH000)\b/),item=im&&RBA.codes[im[1]]?im[1]:'';
+  let r=RULES[a.rule];if(r&&item&&r.c!==item)r=null;f.rule=r?r.id:'';f.title=str(a.title)||(r?r.t:'');f.ev=str(a.evidence);
   f.sev=r&&CFG.sevLock?r.v:SEV.includes(a.severity)?a.severity:(r?r.v:'Minor');const c=Number(a.confidence);f.conf=Number.isFinite(c)?Math.round(clamp(c,0,100)):null;
   f.fixNow=str(a.fix_now)||(r?r.n:'');f.fixRoot=str(a.fix_root)||(r?r.x:'');f.src='ai';f.ok=false;
   f.cause=CAUSE.includes(a.cause)?a.cause:(r?r.z:'Administrative');f.mand=CFG.mandRule==='ai'&&typeof a.mandatory==='boolean'?a.mandatory:f.sev==='Priority';
   f.kind=KINDS[a.kind]?a.kind:(r&&r.kd==='hazard'?'hazard':'violation');
   if(r){f.code=r.c;f.req=r.q;f.law=lawStr(r.l)}
-  else{const rc=String(a.rba_code||'').trim().toUpperCase().match(/\b([A-Z]{2}\d{3})\b/);const code=rc&&RBA.codes[rc[1]]?rc[1]:'';f.code=code;const q=String(a.req_id||'').trim().toUpperCase();f.req=code?(RBA.codes[code].r.some(x=>x[0]===q)?q:RBA.codes[code].r[0][0]):q;const k=String(a.law_item||'').replace(/\D/g,'').padStart(2,'0'),it=code&&RBA.codes[code].l.find(l=>l[0].startsWith(k+'.'));f.law=it?it[1]:''}
+  else{const rc=String(item||a.rba_code||'').trim().toUpperCase().match(/\b([A-Z]{2}\d{3})\b/);const code=rc&&RBA.codes[rc[1]]?rc[1]:'';f.code=code;const q=String(a.req_id||'').trim().toUpperCase();f.req=code?(RBA.codes[code].r.some(x=>x[0]===q)?q:RBA.codes[code].r[0][0]):q;const k=String(a.law_item||'').replace(/\D/g,'').padStart(2,'0'),it=code&&RBA.codes[code].l.find(l=>l[0].startsWith(k+'.'));f.law=it?it[1]:''}
   resolveRbaCode(f,cur());
+  f.aiItem=item&&f.code===item?item:'';
   if(!keep0||!f.ai0)f.ai0={rule:f.rule,code:f.code,req:f.req,sev:f.sev,kind:f.kind,title:f.title};f.learned=false;f.learnSig='';
 }
 function boxShape(b){if(!Array.isArray(b)||b.length<4)return null;const n=b.slice(0,4).map(Number);if(!n.every(Number.isFinite))return null;const x=clamp(Math.min(n[0],n[2])/1000),y=clamp(Math.min(n[1],n[3])/1000),w=clamp(Math.max(n[0],n[2])/1000)-x,hh=clamp(Math.max(n[1],n[3])/1000)-y;return w>.01&&hh>.01?{t:'rect',x,y,w,h:hh}:null}
@@ -2740,7 +2749,7 @@ function cardForm(f){
   const code=RBA.codes[f.code];
   const ruleSel=h('select',{'aria-label':'Danh mục lỗi chuẩn',onchange:e=>{const r=RULES[e.target.value];if(r)applyRule(f,r)}},
     h('option',{value:''},f.rule&&RULES[f.rule]?`— Đang chọn: ${f.rule} (${f.req||f.code||''}) —`:'— Chọn nhanh loại lỗi chuẩn —'),
-    ...catGroups().map(([gn,l],gi)=>h('optgroup',{label:`${gi+1}. ${gn}`},...l.map(r=>h('option',{value:r.id,selected:r.id===f.rule},`[${r.v}] ${r.id} · ${r.t}`)))));
+    ...catGroups().map(([gn,l],gi)=>h('optgroup',{label:gn},...l.map(r=>h('option',{value:r.id,selected:r.id===f.rule},`[${r.v}] ${r.id} · ${r.t}`)))));
   const codeSel=h('select',{'aria-label':'Hạng mục',onchange:e=>{const c=e.target.value;f.code=c;f.req=c?RBA.codes[c].r[0][0]:'';f.law=c&&RBA.codes[c].l[0]?RBA.codes[c].l[0][1]:'';Store.touch(cur());renderList()}},h('option',{value:''},'Chọn hạng mục'),Object.entries(RBA.codes).map(([c,v])=>h('option',{value:c,selected:c===f.code},v.no?`${v.no}. ${v.t} (${v.pts} điểm)`:v.t)));
   const reqSel=h('select',{'aria-label':'Yêu cầu RBA',disabled:!code,onchange:e=>{f.req=e.target.value;Store.touch(cur())}},(code?code.r:[]).map(q=>h('option',{value:q[0],selected:q[0]===f.req},`${q[0]}: ${q[1].slice(0,60)}`)));
   const lawSel=h('select',{'aria-label':'Hạng mục pháp lý',disabled:!code,onchange:e=>{if(e.target.value){f.law=e.target.value;Store.touch(cur());renderList()}}},h('option',{value:''},'Lấy lại căn cứ theo hạng mục'),(code?code.l:[]).map(l=>h('option',{value:l[1]},l[0])));
@@ -2844,7 +2853,7 @@ function renderAllList(){
             S.fsel?h('button',{class:'fchk','aria-pressed':String(on),'aria-label':(on?'Bỏ chọn lỗi ':'Chọn lỗi ')+n,text:on?'✓':''}):null,
             h('span',{class:'bdg '+(f.sev||'none'),style:`background:${cols[f.id][0]};color:${cols[f.id][1]}`,text:String(n)}),
             h('div',{class:'ar-t'},h('b',null,f.pending?'AI đang xác định lỗi…':(f.title||'Chưa có nội dung lỗi')),
-              h('div',{class:'ar-m'},f.sev?h('span',{class:'pill '+f.sev},f.sev):h('span',{class:'tag'},'Chưa có mức độ'),h('span',{class:'tag'},f.req||f.code||'Chưa có mã'),h('span',{class:'tag'},KINDS[kindOf(f)]),f.mand?h('span',{class:'tag mand'},'Mandatory'):null,dupTag(p,f)))),
+              h('div',{class:'ar-m'},f.sev?h('span',{class:'pill '+f.sev},f.sev):h('span',{class:'tag'},'Chưa có mức độ'),pcQuick(p,f,true),h('span',{class:'tag'},KINDS[kindOf(f)]),f.mand?h('span',{class:'tag mand'},'Mandatory'):null,dupTag(p,f)))),
           S.fsel?null:h('div',{class:'ar-a'},h('span',{class:'st-pill '+(f.ok?'ok':'pend')},f.ok?'✓ Đã xác nhận':'⏳ Chờ xác nhận'),
             h('button',{class:'btn sm'+(S.ied===f.id?' is-open':''),onclick:()=>iToggle(f)},S.ied===f.id?'Đang sửa ▴':'Sửa'),
             f.ok?h('button',{class:'btn sm btn-unok',onclick:()=>toggleOk(p,f)},'↺ Bỏ xác nhận'):h('button',{class:'btn sm btn-cfm',onclick:()=>toggleOk(p,f)},'Xác nhận')),S.ied===f.id&&!S.fsel?iEditor(p,f,n):null)}):
@@ -3925,7 +3934,7 @@ function libFor(p){
   const pick=Lib.items.map(x=>{let s=0;for(const w of words(x.vi+' '+x.loc))if(ctx.has(w))s++;return{x,s:s*3+Math.log2(1+(x.n||1))+(V&&x.vendor&&libNorm(x.vendor)===V?6:0)}}).sort((a,b)=>b.s-a.s).slice(0,45).map(o=>o.x).sort((a,b)=>a.code.localeCompare(b.code));
   const cut=(t,n)=>t.length>n?t.slice(0,n-1)+'…':t;
   return `LỖI ĐÃ GHI NHẬN TRONG CÁC BÁO CÁO CŨ (chuyên gia đã xác nhận; dùng làm danh sách kiểm tra và mẫu văn phong)
-- Rà từng lỗi dưới đây: ảnh có tình huống tương tự thì phải báo. Dùng đúng mã như mẫu (nếu danh mục không có id khớp thì "rule":"KHAC" và "rba_code" theo mẫu).
+- Rà từng lỗi dưới đây: ảnh có tình huống tương tự thì phải báo. Dùng đúng hạng mục "item" như mẫu; "rule" chỉ ghi khi có lỗi mẫu của đúng hạng mục đó.
 - Viết "title" và cách khắc phục theo văn phong các mẫu: câu ngắn, nêu đúng vật thể và hiện trạng nhìn thấy, không chung chung. Nếu hiện trạng giống hệt mẫu thì dùng lại đúng câu chữ của mẫu.
 ${pick.map(x=>`- [${x.code||'?'}] ${cut(x.vi||x.en,170)}${x.loc?` (khu: ${cut(x.loc,40)})`:''}${V&&x.vendor&&libNorm(x.vendor)===V?' (lần audit trước tại chính công ty này)':''}${x.fixVi?` → khắc phục: ${cut(x.fixVi,120)}`:''}`).join('\n')}
 
@@ -5106,7 +5115,7 @@ const AIX_RULES=()=>`QUY TẮC CHỌN HẠNG MỤC
   + Lỗ xuyên chưa bịt: xuyên trần, quanh cáp là hạng mục 11; trên tường, vách ngăn cháy là hạng mục 22.
 - Một ảnh có thể có lỗi của nhiều hạng mục; một hạng mục có thể có nhiều lỗi. Ghi đủ.
 - Hai id cùng khớp: chọn id có "dấu hiệu" trùng nhiều chi tiết nhìn thấy nhất và nêu chi tiết trong evidence.
-- Không dùng KHAC khi danh mục đã có id khớp. Lỗi EHS thông thường không nguy hiểm lớn: không báo, không dùng EH000.
+- "item" luôn là một trong 25 hạng mục của checklist (hoặc EH000); "rule" chỉ là lỗi mẫu bên trong hạng mục đó. Lỗi EHS thông thường không nguy hiểm lớn: không báo, không dùng EH000.
 
 MỐC MỨC ĐỘ (đối chiếu trước khi chọn)
 - Priority: cửa hoặc lối thoát nạn bị khóa, chặn hoàn toàn; tủ trung tâm báo cháy bị tắt, cô lập; hàn cắt ngay cạnh dung môi, khí dễ cháy; các lỗi EH000 đe dọa tính mạng tức thời.
@@ -5177,11 +5186,11 @@ async function verifyWhole(prompt,o,data,p){
   try{
     const imgs=[await annotated(p,fs)],zi=[];
     for(let i=0;i<fs.length&&zi.length<6;i++)if(boxOk(fs[i].box)){const z=await zoomBlob(p,fs[i].box);if(z){imgs.push(z);zi.push(i+1)}}
-    const list=fs.map((a,i)=>({i:i+1,rule:a.rule||'',rba_code:a.rba_code||'',title:a.title||'',evidence:a.evidence||'',kind:a.kind||'',severity:a.severity||'',confidence:a.confidence}));
+    const list=fs.map((a,i)=>({i:i+1,item:a.item||a.rba_code||(RULES[a.rule]?RULES[a.rule].c:''),rule:a.rule||'',title:a.title||'',evidence:a.evidence||'',kind:a.kind||'',severity:a.severity||'',confidence:a.confidence}));
     const task=`${TASK}KIỂM TRA LẠI KẾT QUẢ SOÁT ẢNH. Ảnh 1 là toàn cảnh, các lỗi AI đã đề xuất được khoanh khung hồng và đánh số. ${zi.length?zi.map((n,j)=>`Ảnh ${j+2} là ảnh phóng to lỗi số ${n}.`).join(' '):''} Khung và số do ứng dụng vẽ, không phải vật thể hiện trường.
 Với TỪNG lỗi trong danh sách dưới đây, làm lần lượt:
 1. Nhìn kỹ ảnh phóng to: lỗi có thật và nhìn thấy rõ không? Không thấy rõ, chỉ là suy đoán, nhầm vật thể, hoặc cần hồ sơ mới kết luận được: "keep": false và nêu lý do ngắn ở "reason".
-2. Kiểm tra id trong danh mục (hoặc mã hạng mục khi KHAC) theo QUY TẮC CHỌN HẠNG MỤC; sai thì ghi id đúng. Lỗi không thuộc phòng cháy chữa cháy và không nguy hiểm lớn về EHS: "keep": false.
+2. Đối chiếu "item" với yêu cầu nguyên văn của 25 hạng mục checklist và QUY TẮC CHỌN HẠNG MỤC; sai thì ghi "item" đúng và "rule" là lỗi mẫu của hạng mục đó (hoặc để trống). Lỗi không thuộc phòng cháy chữa cháy và không nguy hiểm lớn về EHS: "keep": false.
 3. Kiểm tra mức độ theo MỐC MỨC ĐỘ và tiêu chí MỨC ĐỘ; sai thì ghi mức đúng.
 4. Viết lại "title" và "evidence" cụ thể: vật thể, vị trí trong ảnh, số lượng, chữ hoặc ngày đọc được. Không viết chung chung.
 5. Viết lại "fix_now", "fix_root" theo CÁCH VIẾT KHẮC PHỤC, bám đúng hiện trạng.
@@ -5329,6 +5338,7 @@ function qxRuleFix(f){
   if(f&&f.qxLearn)return false;
   if(!QX.cfg.rules||!f||(f.src!=='ai'&&f.code))return false;
   const text=`${f.title||''}. ${f.ev||''}`,b=qxGuess(text);if(!b||b.id===f.rule)return false;
+  if(f.aiItem&&RULES[b.id]&&RULES[b.id].c!==f.aiItem)return false;
   if(f.rule){const cur=qxScore(f.rule,' '+qn(text)+' ');if(cur.obj||!QX_RX[f.rule])return false}
   const r=RULES[b.id],from={rule:f.rule,code:f.code,req:f.req,sev:f.sev};
   f.rule=r.id;f.code=r.c;f.req=r.q;f.law=lawStr(r.l);f.kind=r.kd==='hazard'?'hazard':'violation';
@@ -5817,11 +5827,11 @@ function gxNewF(p,s,it,ok,fb){
 async function gxAi(g,title){
   const sent=gxOrder(g).slice(0,Math.max(1,Math.min(AI.max||1,4))),imgs=[];
   for(const x of sent)imgs.push(await aiBlob(x.p,x.f));
-  const list=RBA.rules.map(r=>`${r.id}: ${r.t}`).join('\n');
+  const list=[...RBA.order,'EH000'].map(c=>{const v=RBA.codes[c];return `${c} ${v.no?`Hạng mục ${v.no}: ${v.vi}`:'EHS nguy hiểm khác'}\n${RBA.rules.filter(r=>r.c===c).map(r=>`  ${r.id}: ${r.t}`).join('\n')}`}).join('\n');
   const prompt=`Bạn là chuyên gia đánh giá an toàn phòng cháy chữa cháy tại nhà máy ở Việt Nam, chấm theo checklist PCCC 25 hạng mục. ${sent.length>1?`${sent.length} ảnh đính kèm (ảnh 1 đến ${sent.length}) là các vị trí`:'Ảnh đính kèm là một vị trí'} của cùng một lỗi lặp lại: "${title}". Vùng viền màu hồng do ứng dụng vẽ để chỉ vật thể của lỗi đó, không phải vật thể hiện trường.
 NHIỆM VỤ: tìm các vấn đề KHÁC (không phải lỗi trên) trên cùng vật thể hoặc ngay quanh vùng viền hồng mà người đánh giá có thể chưa ghi nhận. Soát kỹ theo loại vật thể: tủ điện (đầu cos, cover, gỉ sét, ốc lỏng, nhãn aptomat, sơ đồ, khóa, biển cảnh báo, bảng tên người phụ trách); bình chữa cháy (tem kiểm định, phiếu kiểm tra, vòi, gioăng cao su, chốt, kim áp suất, biển vị trí, bị che); hóa chất (nhãn GHS, hình đồ cảnh báo, khay chống tràn cho chất lỏng, thông gió hút mùi cho chất bay hơi, khu vực lưu trữ, để lẫn chất kỵ nhau); cửa, lối thoát (đèn exit, chiều mở, vật cản); trần (ẩm mốc, rò nước, đầu báo cháy, thiết bị phòng nổ).
 Chỉ ghi vấn đề nhìn thấy được hoặc có dấu hiệu rõ; ghi số các ảnh có vấn đề. Không chắc thì confidence dưới 60.
-Danh sách id lỗi (chọn id phù hợp nhất; không có thì "KHAC"):
+25 hạng mục checklist và id lỗi mẫu trong từng hạng mục (chọn id của đúng hạng mục bị vi phạm):
 ${list}
 
 Chỉ trả về một JSON:
@@ -5839,7 +5849,7 @@ function gxEdit(g){
   const fld=(label,el)=>h('label',{class:'gxf'},h('span',null,label),el);
   const tT=ta(R.title,2),tE=ta(R.ev,2),tN=ta(R.fixNow,2),tX=ta(R.fixRoot,3),tF=ta('',3,'Mỗi dòng một vấn đề. Ví dụ: Ốc siết thanh cái bị gỉ sét');
   const grpEntries=typeof catGroups==='function'?catGroups():Object.entries(RBA.rules.reduce((m,r)=>((m[r.g]=m[r.g]||[]).push(r),m),{}));
-  const sR=h('select',{'aria-label':'Loại lỗi theo danh mục'},h('option',{value:''},R.rule?'— Giữ nguyên —':'— Chưa chọn (giữ mã hiện tại) —'),...grpEntries.map(([gn,l],gi)=>h('optgroup',{label:`${gi+1}. ${gn}`},...l.map(r=>h('option',{value:r.id,selected:r.id===R.rule},`[${r.v}] ${r.id} · ${r.t} (${r.q})`)))));
+  const sR=h('select',{'aria-label':'Loại lỗi theo danh mục'},h('option',{value:''},R.rule?'— Giữ nguyên —':'— Chưa chọn (giữ mã hiện tại) —'),...grpEntries.map(([gn,l],gi)=>h('optgroup',{label:gn},...l.map(r=>h('option',{value:r.id,selected:r.id===R.rule},`[${r.v}] ${r.id} · ${r.t} (${r.q})`)))));
   const sV=h('select',{'aria-label':'Mức độ'},...SEV.map(s=>h('option',{value:s,selected:s===g.sev},s)));
   const sug=h('div',{class:'gxsug'}),chem=h('div');
   let last=R.rule;
@@ -6483,7 +6493,30 @@ if(typeof gxEdit==='function'){const _gx=gxEdit;gxEdit=function(g){
     if(d)d.addEventListener('close',()=>{try{qxRefresh()}catch{}},{once:true});
   }catch(e){console.warn(e)}
   return r}}
-window.__PC={photos:()=>S.photos,alts:pcAltList,main:pcMain,state:pcState,collect:pcCollect,st:()=>PC.st,xlsx:pcExportXlsx,pdf:()=>exportPdf()};
+
+/* v1.0.4 — Nút chọn nhanh hạng mục ngay trên dòng lỗi (bảng Xác nhận lỗi + thẻ điện thoại) */
+function pcQuick(p,f,mob){
+  const c0=(typeof pcCodeOf==='function'?pcCodeOf(f,p):'')||f.code,cur=RBA.codes[c0]?c0:'';
+  const s=pcCodeSelect(cur,nc=>{try{hist(p)}catch{}if(pcSetCode(f,nc)){Store.touch(p);toast(`Đã chuyển lỗi sang hạng mục ${pcItemLabel(nc)}`);pcAll()}});
+  s.classList.add('pc-q');s.title='Bấm để chọn đúng hạng mục trong 25 hạng mục checklist';
+  for(const ev of['click','mousedown','pointerdown','touchstart','keydown'])s.addEventListener(ev,e=>e.stopPropagation());
+  const alt=typeof pcAltPending==='function'&&pcAltPending(p,f);
+  return h('span',{class:'pc-qw'+(mob?' mob':'')+(cur?'':' empty')},
+    h('span',{class:'pc-ql',text:mob?'Hạng mục:':'▾'}),
+    alt?h('span',{class:'pc-qa',title:'Ảnh này đã có hạng mục trọng tâm khác — xem mục cần xác nhận',text:'⚠'}):null,s);
+}
+/* Danh mục lỗi: nhóm theo 25 hạng mục checklist (không dùng nhóm RBA) */
+catGroups=function(fn){
+  const out=[];
+  for(const c of[...RBA.order,'EH000']){const v=RBA.codes[c];if(!v)continue;
+    const l=RBA.rules.filter(r=>r.c===c&&(!fn||fn(r))).sort((a,b)=>sevRank(a.v)-sevRank(b.v)||a.id.localeCompare(b.id,'vi',{numeric:true}));
+    if(!l.length)continue;
+    const lb=v.no?`Hạng mục ${v.no} · ${v.t}`:'EH000 · EHS nguy hiểm khác';
+    CAT_TIER[lb]=v.no?v.g:'Ngoài checklist (không tính điểm)';out.push([lb,l])}
+  return out;
+};
+
+window.__PC={photos:()=>S.photos,alts:pcAltList,main:pcMain,state:pcState,collect:pcCollect,st:()=>PC.st,xlsx:pcExportXlsx,pdf:()=>exportPdf(),cat:()=>catGroups(),openCat:()=>openCat()};
 
 /* ---------- Khởi động ---------- */
 (async()=>{

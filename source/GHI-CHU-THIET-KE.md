@@ -39,6 +39,14 @@ Phần A là quy tắc nghiệp vụ, không tự ý đổi. Phần B trở đi 
 
 - Màn Xác nhận lỗi → Sửa và khung Sửa nhóm lỗi lặp lại có ô **"Hạng mục vi phạm"** đặt trên cùng, chọn được 25 hạng mục hoặc "EHS nguy hiểm khác".
 - Đổi hạng mục thì danh sách lỗi mẫu chỉ còn lỗi của hạng mục đó; nội dung lỗi giữ nguyên; lỗi được đánh dấu "Đã chọn tay" và AI ghi nhận vào Sổ kinh nghiệm khi xác nhận.
+- (v1.0.4) Bảng Xác nhận lỗi có cột **"Hạng mục (bấm để đổi)"**: mỗi dòng lỗi là một ô chọn 25 hạng mục ngay tại chỗ, không cần mở Sửa. Trên điện thoại, mỗi thẻ lỗi có dòng "Hạng mục:" với ô chọn tương tự. Dấu ⚠ = lỗi thuộc hạng mục thứ hai của ảnh, chờ quyết định.
+
+### A3d. AI phán định theo 25 hạng mục checklist (v1.0.4)
+
+- Lời nhắc AI không còn danh mục lỗi rời kiểu RBA. Danh mục gửi AI xếp theo **25 hạng mục**, mỗi hạng mục kèm **yêu cầu nguyên văn của checklist**, các lỗi mẫu nằm bên trong hạng mục đó.
+- AI phải trả **"item"** (HM001…HM025 hoặc EH000) trước, bằng cách so hiện trạng với yêu cầu checklist; "rule" (lỗi mẫu) chỉ là phụ, phải thuộc đúng hạng mục đã chọn, không khớp thì để trống. "title" viết bám yêu cầu của hạng mục.
+- Lỗi mẫu lệch hạng mục với "item" bị bỏ, hạng mục theo "item". Bộ sửa tự động theo từ khóa chỉ được đổi lỗi mẫu **bên trong** hạng mục AI đã chọn, không được chuyển sang hạng mục khác (chỉ người dùng hoặc Sổ kinh nghiệm đã xác nhận mới đổi được).
+- Bảng "Danh mục lỗi", ô chọn loại lỗi ở Sửa và Sửa nhóm: nhóm theo "Hạng mục n · tên", tiêu đề lớn theo 5 phân loại của checklist; bỏ hẳn nhóm của RBA.
 
 ### A4. File checklist (.xlsx) là mẫu cố định
 
@@ -128,5 +136,7 @@ Tiền tố `soat-pccc` cho IndexedDB và localStorage, nên chạy chung trình
 
 | Bản | Nội dung |
 |---|---|
+| **v1.0.4** | Nút chọn hạng mục ngay trên từng dòng lỗi (bảng và thẻ điện thoại); AI phán định theo yêu cầu của 25 hạng mục checklist (trường "item" bắt buộc), bỏ nhóm danh mục RBA |
+| **v1.0.3** | Ảnh trong file Excel cùng khung, cùng kích thước |
 | **v1.0.2** | Chọn tay hạng mục vi phạm ở khung Sửa và Sửa nhóm; một ảnh chỉ tính một hạng mục trọng tâm, lỗi hạng mục thứ hai phải được người đánh giá quyết định |
 | **v1.0.0** | Bản đầu, tách từ Audit RBA v1.7.0: danh mục 25 hạng mục và 90 lỗi mẫu PCCC, lời nhắc AI theo checklist, màn chấm điểm OK/NG, xuất checklist .xlsx đúng mẫu, PDF báo cáo nhanh có điểm và hạng, lỗi EHS khác ghi riêng, đồng bộ bảng chấm lên máy chủ |

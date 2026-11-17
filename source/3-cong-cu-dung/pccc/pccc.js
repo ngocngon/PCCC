@@ -446,4 +446,27 @@ if(typeof gxEdit==='function'){const _gx=gxEdit;gxEdit=function(g){
     if(d)d.addEventListener('close',()=>{try{qxRefresh()}catch{}},{once:true});
   }catch(e){console.warn(e)}
   return r}}
-window.__PC={photos:()=>S.photos,alts:pcAltList,main:pcMain,state:pcState,collect:pcCollect,st:()=>PC.st,xlsx:pcExportXlsx,pdf:()=>exportPdf()};
+
+/* v1.0.4 — Nút chọn nhanh hạng mục ngay trên dòng lỗi (bảng Xác nhận lỗi + thẻ điện thoại) */
+function pcQuick(p,f,mob){
+  const c0=(typeof pcCodeOf==='function'?pcCodeOf(f,p):'')||f.code,cur=RBA.codes[c0]?c0:'';
+  const s=pcCodeSelect(cur,nc=>{try{hist(p)}catch{}if(pcSetCode(f,nc)){Store.touch(p);toast(`Đã chuyển lỗi sang hạng mục ${pcItemLabel(nc)}`);pcAll()}});
+  s.classList.add('pc-q');s.title='Bấm để chọn đúng hạng mục trong 25 hạng mục checklist';
+  for(const ev of['click','mousedown','pointerdown','touchstart','keydown'])s.addEventListener(ev,e=>e.stopPropagation());
+  const alt=typeof pcAltPending==='function'&&pcAltPending(p,f);
+  return h('span',{class:'pc-qw'+(mob?' mob':'')+(cur?'':' empty')},
+    h('span',{class:'pc-ql',text:mob?'Hạng mục:':'▾'}),
+    alt?h('span',{class:'pc-qa',title:'Ảnh này đã có hạng mục trọng tâm khác — xem mục cần xác nhận',text:'⚠'}):null,s);
+}
+/* Danh mục lỗi: nhóm theo 25 hạng mục checklist (không dùng nhóm RBA) */
+catGroups=function(fn){
+  const out=[];
+  for(const c of[...RBA.order,'EH000']){const v=RBA.codes[c];if(!v)continue;
+    const l=RBA.rules.filter(r=>r.c===c&&(!fn||fn(r))).sort((a,b)=>sevRank(a.v)-sevRank(b.v)||a.id.localeCompare(b.id,'vi',{numeric:true}));
+    if(!l.length)continue;
+    const lb=v.no?`Hạng mục ${v.no} · ${v.t}`:'EH000 · EHS nguy hiểm khác';
+    CAT_TIER[lb]=v.no?v.g:'Ngoài checklist (không tính điểm)';out.push([lb,l])}
+  return out;
+};
+
+window.__PC={photos:()=>S.photos,alts:pcAltList,main:pcMain,state:pcState,collect:pcCollect,st:()=>PC.st,xlsx:pcExportXlsx,pdf:()=>exportPdf(),cat:()=>catGroups(),openCat:()=>openCat()};

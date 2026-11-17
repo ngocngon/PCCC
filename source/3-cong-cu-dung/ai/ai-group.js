@@ -206,11 +206,11 @@ function gxNewF(p,s,it,ok,fb){
 async function gxAi(g,title){
   const sent=gxOrder(g).slice(0,Math.max(1,Math.min(AI.max||1,4))),imgs=[];
   for(const x of sent)imgs.push(await aiBlob(x.p,x.f));
-  const list=RBA.rules.map(r=>`${r.id}: ${r.t}`).join('\n');
+  const list=[...RBA.order,'EH000'].map(c=>{const v=RBA.codes[c];return `${c} ${v.no?`Hạng mục ${v.no}: ${v.vi}`:'EHS nguy hiểm khác'}\n${RBA.rules.filter(r=>r.c===c).map(r=>`  ${r.id}: ${r.t}`).join('\n')}`}).join('\n');
   const prompt=`Bạn là chuyên gia đánh giá an toàn phòng cháy chữa cháy tại nhà máy ở Việt Nam, chấm theo checklist PCCC 25 hạng mục. ${sent.length>1?`${sent.length} ảnh đính kèm (ảnh 1 đến ${sent.length}) là các vị trí`:'Ảnh đính kèm là một vị trí'} của cùng một lỗi lặp lại: "${title}". Vùng viền màu hồng do ứng dụng vẽ để chỉ vật thể của lỗi đó, không phải vật thể hiện trường.
 NHIỆM VỤ: tìm các vấn đề KHÁC (không phải lỗi trên) trên cùng vật thể hoặc ngay quanh vùng viền hồng mà người đánh giá có thể chưa ghi nhận. Soát kỹ theo loại vật thể: tủ điện (đầu cos, cover, gỉ sét, ốc lỏng, nhãn aptomat, sơ đồ, khóa, biển cảnh báo, bảng tên người phụ trách); bình chữa cháy (tem kiểm định, phiếu kiểm tra, vòi, gioăng cao su, chốt, kim áp suất, biển vị trí, bị che); hóa chất (nhãn GHS, hình đồ cảnh báo, khay chống tràn cho chất lỏng, thông gió hút mùi cho chất bay hơi, khu vực lưu trữ, để lẫn chất kỵ nhau); cửa, lối thoát (đèn exit, chiều mở, vật cản); trần (ẩm mốc, rò nước, đầu báo cháy, thiết bị phòng nổ).
 Chỉ ghi vấn đề nhìn thấy được hoặc có dấu hiệu rõ; ghi số các ảnh có vấn đề. Không chắc thì confidence dưới 60.
-Danh sách id lỗi (chọn id phù hợp nhất; không có thì "KHAC"):
+25 hạng mục checklist và id lỗi mẫu trong từng hạng mục (chọn id của đúng hạng mục bị vi phạm):
 ${list}
 
 Chỉ trả về một JSON:
@@ -228,7 +228,7 @@ function gxEdit(g){
   const fld=(label,el)=>h('label',{class:'gxf'},h('span',null,label),el);
   const tT=ta(R.title,2),tE=ta(R.ev,2),tN=ta(R.fixNow,2),tX=ta(R.fixRoot,3),tF=ta('',3,'Mỗi dòng một vấn đề. Ví dụ: Ốc siết thanh cái bị gỉ sét');
   const grpEntries=typeof catGroups==='function'?catGroups():Object.entries(RBA.rules.reduce((m,r)=>((m[r.g]=m[r.g]||[]).push(r),m),{}));
-  const sR=h('select',{'aria-label':'Loại lỗi theo danh mục'},h('option',{value:''},R.rule?'— Giữ nguyên —':'— Chưa chọn (giữ mã hiện tại) —'),...grpEntries.map(([gn,l],gi)=>h('optgroup',{label:`${gi+1}. ${gn}`},...l.map(r=>h('option',{value:r.id,selected:r.id===R.rule},`[${r.v}] ${r.id} · ${r.t} (${r.q})`)))));
+  const sR=h('select',{'aria-label':'Loại lỗi theo danh mục'},h('option',{value:''},R.rule?'— Giữ nguyên —':'— Chưa chọn (giữ mã hiện tại) —'),...grpEntries.map(([gn,l],gi)=>h('optgroup',{label:gn},...l.map(r=>h('option',{value:r.id,selected:r.id===R.rule},`[${r.v}] ${r.id} · ${r.t} (${r.q})`)))));
   const sV=h('select',{'aria-label':'Mức độ'},...SEV.map(s=>h('option',{value:s,selected:s===g.sev},s)));
   const sug=h('div',{class:'gxsug'}),chem=h('div');
   let last=R.rule;

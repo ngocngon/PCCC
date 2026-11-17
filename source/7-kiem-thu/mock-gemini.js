@@ -11,7 +11,7 @@ const AREAS = ['Nhà máy 2: Xưởng NC tầng 1', 'Phòng sơn Mobase 1', 'Xư
 const KO = ['비상문 3개가 봉인된 채 잠겨 있어 개방 불가능함', '전선이 배선함에서 나오는 부분이 케이블 그랜드로 보호되지 않음', '제2공장 1층 NC공장', '모베이스1 도장실', '전기박스 내에 가연성 물질이 적치되어 있음', '화재감지기 배선이 이탈된 채 관리되지 않음', '1층 1공장', '제2공장 1층 도금공장'];
 const ZH = ['叉车检验标签已过期', '灭火器超过检查期限且未悬挂检查卡', '化学品仓库', '空压机房', '紧急出口前堆放物品，疏散通道受阻', '配电箱未安装盖板且未张贴警示标签', '冲压车间', '员工食堂'];
 // box_2d theo cách của Gemini: [y1, x1, y2, x2], thang 0–1000
-const F = (rule, title, sev, box, code) => ({ rule, kind: 'violation', title, evidence: 'Nhìn thấy trong ảnh', severity: sev, confidence: 88, fix_now: 'Xử lý ngay', fix_root: 'Khắc phục triệt để', cause: 'Facility', rba_code: code || '', box_2d: box });
+const F = (rule, title, sev, box, code) => ({ rule, kind: 'violation', title, evidence: 'Nhìn thấy trong ảnh', severity: sev, confidence: 88, fix_now: 'Xử lý ngay', fix_root: 'Khắc phục triệt để', cause: 'Facility', item: code || '', box_2d: box });
 
 window.fetch = async (u, o = {}) => {
   u = String(u);
@@ -46,6 +46,7 @@ window.fetch = async (u, o = {}) => {
       F('', 'Công nhân đứng trên mái tôn không đeo dây đai an toàn, không có lan can', 'Priority', [600, 500, 950, 900], 'EH000')];
     if (i === 3) list = [                                                   // ảnh 4: hạng mục 19 và 20
       F('E1', 'Dây cảm biến báo cháy tại trạm đổi nguồn điện 1 chiều bị tuột', 'Major', [150, 150, 450, 450]),
+      F('B5', 'Đầu báo cháy bị bọc nilon kín, không nhận được khói', 'Major', [50, 600, 140, 760], 'HM019'),  // rule lệch hạng mục: phải theo item
       F('E11', 'Trạm đổi nguồn điện 1 chiều chưa có bình cầu chữa cháy', 'Major', [500, 300, 900, 800])];
     out = JSON.stringify({ scene: 'Khu vực', area_guess: AREAS[i], main_item: ['HM023', 'HM011', 'HM014', 'HM019'][i], findings: list, compliant: [], verify: [] });  // ảnh 3, 4 có lỗi của hạng mục thứ hai
   }

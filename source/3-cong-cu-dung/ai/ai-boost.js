@@ -81,7 +81,7 @@ const AIX_RULES=()=>`QUY TẮC CHỌN HẠNG MỤC
   + Lỗ xuyên chưa bịt: xuyên trần, quanh cáp là hạng mục 11; trên tường, vách ngăn cháy là hạng mục 22.
 - Một ảnh có thể có lỗi của nhiều hạng mục; một hạng mục có thể có nhiều lỗi. Ghi đủ.
 - Hai id cùng khớp: chọn id có "dấu hiệu" trùng nhiều chi tiết nhìn thấy nhất và nêu chi tiết trong evidence.
-- Không dùng KHAC khi danh mục đã có id khớp. Lỗi EHS thông thường không nguy hiểm lớn: không báo, không dùng EH000.
+- "item" luôn là một trong 25 hạng mục của checklist (hoặc EH000); "rule" chỉ là lỗi mẫu bên trong hạng mục đó. Lỗi EHS thông thường không nguy hiểm lớn: không báo, không dùng EH000.
 
 MỐC MỨC ĐỘ (đối chiếu trước khi chọn)
 - Priority: cửa hoặc lối thoát nạn bị khóa, chặn hoàn toàn; tủ trung tâm báo cháy bị tắt, cô lập; hàn cắt ngay cạnh dung môi, khí dễ cháy; các lỗi EH000 đe dọa tính mạng tức thời.
@@ -152,11 +152,11 @@ async function verifyWhole(prompt,o,data,p){
   try{
     const imgs=[await annotated(p,fs)],zi=[];
     for(let i=0;i<fs.length&&zi.length<6;i++)if(boxOk(fs[i].box)){const z=await zoomBlob(p,fs[i].box);if(z){imgs.push(z);zi.push(i+1)}}
-    const list=fs.map((a,i)=>({i:i+1,rule:a.rule||'',rba_code:a.rba_code||'',title:a.title||'',evidence:a.evidence||'',kind:a.kind||'',severity:a.severity||'',confidence:a.confidence}));
+    const list=fs.map((a,i)=>({i:i+1,item:a.item||a.rba_code||(RULES[a.rule]?RULES[a.rule].c:''),rule:a.rule||'',title:a.title||'',evidence:a.evidence||'',kind:a.kind||'',severity:a.severity||'',confidence:a.confidence}));
     const task=`${TASK}KIỂM TRA LẠI KẾT QUẢ SOÁT ẢNH. Ảnh 1 là toàn cảnh, các lỗi AI đã đề xuất được khoanh khung hồng và đánh số. ${zi.length?zi.map((n,j)=>`Ảnh ${j+2} là ảnh phóng to lỗi số ${n}.`).join(' '):''} Khung và số do ứng dụng vẽ, không phải vật thể hiện trường.
 Với TỪNG lỗi trong danh sách dưới đây, làm lần lượt:
 1. Nhìn kỹ ảnh phóng to: lỗi có thật và nhìn thấy rõ không? Không thấy rõ, chỉ là suy đoán, nhầm vật thể, hoặc cần hồ sơ mới kết luận được: "keep": false và nêu lý do ngắn ở "reason".
-2. Kiểm tra id trong danh mục (hoặc mã hạng mục khi KHAC) theo QUY TẮC CHỌN HẠNG MỤC; sai thì ghi id đúng. Lỗi không thuộc phòng cháy chữa cháy và không nguy hiểm lớn về EHS: "keep": false.
+2. Đối chiếu "item" với yêu cầu nguyên văn của 25 hạng mục checklist và QUY TẮC CHỌN HẠNG MỤC; sai thì ghi "item" đúng và "rule" là lỗi mẫu của hạng mục đó (hoặc để trống). Lỗi không thuộc phòng cháy chữa cháy và không nguy hiểm lớn về EHS: "keep": false.
 3. Kiểm tra mức độ theo MỐC MỨC ĐỘ và tiêu chí MỨC ĐỘ; sai thì ghi mức đúng.
 4. Viết lại "title" và "evidence" cụ thể: vật thể, vị trí trong ảnh, số lượng, chữ hoặc ngày đọc được. Không viết chung chung.
 5. Viết lại "fix_now", "fix_root" theo CÁCH VIẾT KHẮC PHỤC, bám đúng hiện trạng.

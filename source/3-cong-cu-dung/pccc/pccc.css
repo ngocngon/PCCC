@@ -63,3 +63,11 @@
 .pc-altlist h4{margin:0 0 4px;font-size:14px;color:#92400E}.pc-altlist .hint{margin:0 0 8px}
 .pc-alti{display:flex;gap:10px;align-items:flex-start;padding:6px 0;border-top:1px dashed rgba(180,83,9,.3)}
 .pc-alti>div{display:grid;gap:6px;flex:1;min-width:0;font-size:12.5px}
+/* v1.0.4 nút chọn nhanh hạng mục */
+.pc-qw{display:inline-flex;align-items:center;gap:4px;max-width:260px}
+.pc-qw .pc-ql{white-space:nowrap;font-size:11px;color:#B91C1C;font-weight:700}
+.pc-qw.mob{max-width:100%;flex-wrap:nowrap}
+.pc-qw .pc-qa{color:#B45309;font-weight:700}
+select.pc-q{max-width:230px;font:600 12px/1.2 inherit;padding:5px 6px;border:1.5px solid #B91C1C;border-radius:8px;background:#FEF2F2;color:#7F1D1D;cursor:pointer}
+.pc-qw.empty select.pc-q{border-style:dashed;background:#FFF7ED;color:#9A3412}
+.pc-qw.mob select.pc-q{max-width:calc(100vw - 120px)}

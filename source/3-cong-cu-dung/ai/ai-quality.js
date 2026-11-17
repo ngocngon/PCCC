@@ -61,6 +61,7 @@ function qxRuleFix(f){
   if(f&&f.qxLearn)return false;
   if(!QX.cfg.rules||!f||(f.src!=='ai'&&f.code))return false;
   const text=`${f.title||''}. ${f.ev||''}`,b=qxGuess(text);if(!b||b.id===f.rule)return false;
+  if(f.aiItem&&RULES[b.id]&&RULES[b.id].c!==f.aiItem)return false;
   if(f.rule){const cur=qxScore(f.rule,' '+qn(text)+' ');if(cur.obj||!QX_RX[f.rule])return false}
   const r=RULES[b.id],from={rule:f.rule,code:f.code,req:f.req,sev:f.sev};
   f.rule=r.id;f.code=r.c;f.req=r.q;f.law=lawStr(r.l);f.kind=r.kd==='hazard'?'hazard':'violation';
