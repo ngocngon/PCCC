@@ -1180,7 +1180,7 @@ function setDView(v){
 function grpHub(){const R=['Thông tin kiểm tra','Chấm điểm','Xuất báo cáo','Hiện trường và làm việc nhóm'];document.querySelectorAll('.hubb>*').forEach(el=>{const t=(el.querySelector('h3')||{}).textContent||'';el.dataset.grp=R.some(r=>t.startsWith(r))?'report':'know'})}
 let deskQ=0;function deskSoon(){if(isMobile()||deskQ)return;deskQ=requestAnimationFrame(()=>{deskQ=0;renderDesk()})}
 function deskStats(){
-  const real=S.photos.filter(p=>!p.sample),its=real.flatMap((p,pi)=>p.findings.map((f,i)=>({p,f,pi,n:i+1})));
+  const real=pcSortPhotos(S.photos.filter(p=>!p.sample)),its=real.flatMap((p,pi)=>p.findings.map((f,i)=>({p,f,pi,n:i+1})));
   const sev={};for(const s of SEV)sev[s]=its.filter(x=>x.f.sev===s).length;
   return{real,its,sev,an:real.filter(p=>p.analysis||p.findings.length).length,run:real.filter(p=>p.bgRun).length,
     ok:its.filter(x=>x.f.ok).length,pend:its.filter(x=>done(x.f)&&!x.f.ok).length,viol:its.filter(x=>kindOf(x.f)==='violation').length,
@@ -1381,7 +1381,7 @@ function renderTable(){
   fillSel('tCode',[...new Set(st.its.map(x=>x.f.code).filter(Boolean))].sort(),T.code,c=>RBA.codes[c]?(RBA.codes[c].no?`${RBA.codes[c].no}. ${RBA.codes[c].t}`:RBA.codes[c].t):c);
   fillSel('tArea',[...new Set(st.its.map(x=>(x.p.area||'Chưa ghi khu vực').trim()))].sort(),T.area);
   for(const[k,id]of[['sev','tSev'],['st','tSt'],['kind','tKind']])$(id).value=T[k];if(document.activeElement!==$('tQ'))$('tQ').value=T.q;
-  const rows=tFilter(st);if(!S.fsel)S.fsel=null;
+  const rows=tFilter(st).sort(pcRowCmp);if(!S.fsel)S.fsel=null;
   const dm=$('tDetailMeta');if(dm)dm.textContent=st.its.length?`Đang hiển thị ${rows.length}/${st.its.length} lỗi chi tiết · Bấm tiêu đề lỗi hoặc nút Sửa để chỉnh ngay tại chỗ`:'Chưa có phát hiện nào';
   const af=$('tActiveFlt');
   if(af){
@@ -1413,7 +1413,7 @@ function renderTable(){
       h('td',null,KINDS[kindOf(f)]),
       h('td',{class:'nowrap'},due?vnDate(due):'—'),
       h('td',null,h('span',{class:'st-pill '+(f.ok?'ok':'pend')},f.ok?'✓ Đã xác nhận':'⏳ Chờ xác nhận'),!f.ok&&f.src==='ai'&&f.conf!=null?h('small',{class:'st-sub'},`Độ chắc chắn AI ${f.conf}%`):null),
-      h('td',null,h('div',{class:'ta'},f.ok?h('button',{class:'btn sm btn-unok',title:'Hoàn tác về trạng thái Chờ xác nhận',onclick:()=>toggleOk(p,f)},'↺ Bỏ XN'):h('button',{class:'btn sm btn-cfm',onclick:()=>toggleOk(p,f)},'Xác nhận'),h('button',{class:'btn sm'+(S.ied===f.id?' is-open':''),onclick:()=>iToggle(f)},S.ied===f.id?'Đang sửa ▴':'Sửa')))),S.ied===f.id?h('tr',{class:'iedrow'},h('td',{colspan:'11'},iEditor(p,f,n))):null].filter(Boolean)}):
+      h('td',null,h('div',{class:'ta'},f.ok?h('button',{class:'btn sm btn-unok',title:'Hoàn tác về trạng thái Chờ xác nhận',onclick:()=>toggleOk(p,f)},'↺ Bỏ XN'):h('button',{class:'btn sm btn-cfm',onclick:()=>toggleOk(p,f)},'Xác nhận'),h('button',{class:'btn sm'+(S.ied===f.id?' is-open':''),onclick:()=>iToggle(f)},S.ied===f.id?'Đang sửa ▴':'Sửa'),pcDelBtn(p,f)))),S.ied===f.id?h('tr',{class:'iedrow'},h('td',{colspan:'11'},iEditor(p,f,n))):null].filter(Boolean)}):
     [h('tr',null,h('td',{colspan:'11'},st.its.length
       ?h('div',{class:'tflt-empty'},h('b',null,`Đang ẩn toàn bộ ${st.its.length} lỗi do bộ lọc hiện tại không có mục khớp`),h('small',null,'Bấm nút bên dưới để xóa bộ lọc và hiển thị lại đầy đủ danh sách lỗi chi tiết của mọi ảnh.'),h('button',{type:'button',class:'btn primary',onclick:()=>{resetTF();$('tQ').value='';renderTable()}},`Hiện toàn bộ ${st.its.length} lỗi chi tiết`))
       :h('div',{class:'tflt-empty'},h('b',null,'Chưa có lỗi nào trong đợt đánh giá này'),h('small',null,'Hãy thêm ảnh hiện trường để AI tự động soát lỗi, hoặc mở ảnh để khoanh vùng bổ sung.'))))]));
@@ -1610,7 +1610,7 @@ function focusFinding(f){
   const c=document.querySelector(`.card[data-id="${f.id}"]`);if(c)c.scrollIntoView({block:'nearest'});
 }
 function stepPhoto(dir){
-  const list=S.photos;if(list.length<2)return;
+  const list=pcSortPhotos(S.photos);if(list.length<2)return;
   const i=Math.max(0,list.findIndex(p=>p.id===S.cur)),nx=list[(i+dir+list.length)%list.length];
   if(nx)open(nx.id);
 }
@@ -1709,7 +1709,10 @@ PHẠM VI (rất quan trọng)
   (2) Lỗi KHÔNG thuộc phòng cháy nhưng NGUY HIỂM, có nguy cơ lớn về EHS: có thể gây chết người, chấn thương nặng hoặc sự cố lớn (ví dụ làm việc trên cao không chống rơi, phần mang điện hở trong tầm với, bộ phận chuyển động không che chắn, người đứng dưới tải treo, tràn đổ hóa chất độc). Loại này dùng mã EH000, được ghi riêng và không trừ điểm.
 - KHÔNG báo các lỗi EHS thông thường không liên quan cháy nổ và không nguy hiểm lớn: vệ sinh, 5S, nhãn mác, biển tên, công thái học, PPE thông thường, môi trường, nhà ăn. Thấy thì bỏ qua.
 - MỖI ẢNH CHỈ TÍNH MỘT HẠNG MỤC: xác định một hạng mục TRỌNG TÂM duy nhất trong 25 hạng mục cho cả ảnh (hạng mục của vi phạm chính, nghiêm trọng nhất, là lý do bức ảnh được chụp) và ghi mã vào "main_item". Mọi lỗi thuộc hạng mục trọng tâm đều liệt kê hết (một hạng mục có thể có nhiều lỗi) để đơn vị khắc phục đủ.
-- Không tính một ảnh thành hai hạng mục. Chỉ khi ảnh có thêm vi phạm RÕ RÀNG của một hạng mục khác thì mới ghi lỗi đó vào findings với "secondary": true; ứng dụng sẽ đánh dấu để người đánh giá quyết định có giữ hay không. Lỗi chỉ hơi liên quan tới hạng mục khác thì gán luôn vào hạng mục trọng tâm nếu hợp lý, hoặc bỏ qua.
+- ĐÚNG TRỌNG TÂM: "item" của mỗi lỗi phải là hạng mục mà YÊU CẦU NGUYÊN VĂN của checklist nói tới trực tiếp vật thể và khiếm khuyết nhìn thấy. Không gán theo liên tưởng xa (ví dụ: bình chữa cháy bị che → hạng mục về bình chữa cháy, không phải hạng mục lối thoát nạn trừ khi chính lối thoát bị chắn).
+- Không tính một ảnh thành hai hạng mục. Chỉ khi ảnh có thêm vi phạm RÕ RÀNG của một hạng mục khác thì mới ghi lỗi đó vào findings với "secondary": true; ứng dụng sẽ hỏi người đánh giá chọn một hay nhiều hạng mục. Lỗi chỉ hơi liên quan tới hạng mục khác thì gán luôn vào hạng mục trọng tâm nếu hợp lý, hoặc bỏ qua.
+- Nếu CHÍNH MỘT lỗi vi phạm trực tiếp yêu cầu của hai hạng mục (ví dụ hàng hóa chắn lối thoát nạn đồng thời che tủ chữa cháy vách tường), ghi hạng mục trọng tâm vào "item" và hạng mục còn lại vào "also_items"; người đánh giá sẽ chọn giữ một hoặc nhiều. Không ghi "also_items" chỉ vì có liên quan gián tiếp.
+- KHÔNG BÁO LỖI MƠ HỒ: mỗi lỗi phải nêu rõ vật thể cụ thể + khiếm khuyết cụ thể nhìn thấy (ví dụ "Bình chữa cháy CO2 tại cột A3 bị pallet hàng che kín, không tiếp cận được"). Không dùng các cụm "có thể", "có vẻ", "nghi ngờ", "dường như", "chưa rõ", "cần xác minh". Điều chưa chắc thì đưa vào "verify", không đưa vào findings.
 
 NGUYÊN TẮC
 - Chỉ kết luận điều NHÌN THẤY trong ảnh. Không suy đoán về hồ sơ, giấy phép, đào tạo hay tần suất kiểm tra, trừ khi ảnh chụp chính hồ sơ, giấy phép, phiếu kiểm tra đó và đọc được nội dung.
@@ -1751,7 +1754,7 @@ ${CATALOG()}
 
 THÔNG TIN RIÊNG CHO LẦN SOÁT NÀY
 ${lessonsFor(p)}${libFor(p)}${docsFor(p)}`;
-const FIND=`"item":"mã hạng mục HM001 đến HM025, hoặc EH000 (bắt buộc)","rule":"id lỗi mẫu thuộc đúng hạng mục đã chọn, hoặc để trống","kind":"violation|hazard","title":"một câu nêu đúng lỗi nhìn thấy","evidence":"chi tiết trong ảnh chứng minh lỗi","severity":"Priority|Major|Minor","cause":"Facility|Administrative","mandatory":false,"confidence":85,"fix_now":"việc làm ngay tại chỗ","fix_root":"khắc phục triệt để, ngăn tái diễn"`;
+const FIND=`"item":"mã hạng mục HM001 đến HM025, hoặc EH000 (bắt buộc)","rule":"id lỗi mẫu thuộc đúng hạng mục đã chọn, hoặc để trống","kind":"violation|hazard","title":"một câu nêu đúng lỗi nhìn thấy","evidence":"chi tiết trong ảnh chứng minh lỗi","severity":"Priority|Major|Minor","cause":"Facility|Administrative","mandatory":false,"confidence":85,"fix_now":"việc làm ngay tại chỗ","fix_root":"khắc phục triệt để, ngăn tái diễn","also_items":[]`;
 /* Thời hạn kiểm định, bảo dưỡng, tem nhãn: căn cứ đã tra cứu (mục có c:1 cần xác nhận lại với văn bản gốc) */
 const HANDB=[
  {t:'Bình chữa cháy',p:'Bảo dưỡng ít nhất 6 tháng/lần (TCVN 7435-2: 6–12 tháng); tự kiểm tra hằng tháng',b:'QCVN 10:2025/BCA mục 1.5.13; TCVN 7435-2; TT 36/2025/TT-BCA',v:'Major',id:'E16'},
@@ -2034,7 +2037,7 @@ function toggleOk(p,f){if(!done(f)){toast('Lỗi chưa có nội dung. Bấm S�
 function renderAllList(){
   if(iTyping()){S.iDirty=true;return}
   const L=$('list'),R=$('sumR');L.replaceChildren();R.replaceChildren();$('side').hidden=true;$('lBack').hidden=true;
-  const real=S.photos.filter(p=>!p.sample),src=real.length?real:S.photos,all=src.flatMap(p=>p.findings);
+  const real=pcSortPhotos(S.photos.filter(p=>!p.sample)),src=real.length?real:S.photos,all=src.flatMap(p=>p.findings);
   const tot=all.length,okN=all.filter(f=>f.ok).length,pend=tot-okN;
   $('sumT').textContent=tot?`Xác nhận lỗi: ${okN}/${tot} lỗi đã xác nhận`:'Xác nhận lỗi';
   if(tot)R.append(h('div',{class:'prog wide',style:'width:100%',title:`${okN}/${tot} lỗi đã xác nhận`},h('span',{style:`width:${okN/tot*100}%`})),
@@ -2074,7 +2077,7 @@ function renderAllList(){
   if(tot)L.append(h('div',{class:'tdetail-hd'},h('h3',null,'Danh sách chi tiết từng ảnh'),h('small',null,`${src.length} ảnh`)));
   let shownAny=false;
   src.forEach((p,pi)=>{
-    const its=p.findings.map((f,i)=>({f,n:i+1})).filter(x=>matchF(x.f,p));
+    const its=p.findings.map((f,i)=>({f,n:i+1})).filter(x=>matchF(x.f,p)).sort((a,b)=>pcFindRank(p,a.f)-pcFindRank(p,b.f)||a.n-b.n);
     if((S.lf!=='all'||hasSubFlt)&&!its.length)return;
     shownAny=true;
     const cols=colorsOf(p.findings.map(f=>({f}))),okP=p.findings.filter(f=>f.ok).length,pdP=p.findings.length-okP;
@@ -2091,7 +2094,7 @@ function renderAllList(){
               h('div',{class:'ar-m'},f.sev?h('span',{class:'pill '+f.sev},f.sev):h('span',{class:'tag'},'Chưa có mức độ'),pcQuick(p,f,true),h('span',{class:'tag'},KINDS[kindOf(f)]),f.mand?h('span',{class:'tag mand'},'Mandatory'):null,dupTag(p,f)))),
           S.fsel?null:h('div',{class:'ar-a'},h('span',{class:'st-pill '+(f.ok?'ok':'pend')},f.ok?'✓ Đã xác nhận':'⏳ Chờ xác nhận'),
             h('button',{class:'btn sm'+(S.ied===f.id?' is-open':''),onclick:()=>iToggle(f)},S.ied===f.id?'Đang sửa ▴':'Sửa'),
-            f.ok?h('button',{class:'btn sm btn-unok',onclick:()=>toggleOk(p,f)},'↺ Bỏ xác nhận'):h('button',{class:'btn sm btn-cfm',onclick:()=>toggleOk(p,f)},'Xác nhận')),S.ied===f.id&&!S.fsel?iEditor(p,f,n):null)}):
+            f.ok?h('button',{class:'btn sm btn-unok',onclick:()=>toggleOk(p,f)},'↺ Bỏ xác nhận'):h('button',{class:'btn sm btn-cfm',onclick:()=>toggleOk(p,f)},'Xác nhận'),pcDelBtn(p,f)),S.ied===f.id&&!S.fsel?iEditor(p,f,n):null)}):
         h('p',{class:'anone2'},p.bgRun?'AI đang soát ảnh này…':p.analysis?'AI không thấy lỗi trong ảnh này.':'Ảnh chưa được soát.'),
       p.sample||p.bgRun||S.fsel?null:h('div',{class:'agfoot'},hintAdd(p))));
   });
@@ -2165,7 +2168,7 @@ function renderThumbs(){
       ...[['all',`Tất cả (${real.length})`],['pend',`⏳ Chờ (${nPend})`],['uns',`Chưa soát (${nUns})`]].map(([k,lb])=>
         h('button',{type:'button','aria-pressed':String((S.pFlt||'all')===k),onclick:()=>{S.pFlt=k;renderThumbs()}},lb)));
   }
-  const vis=S.photos.filter(p=>p.sample||(S.pFlt==='pend'?p.findings.some(f=>done(f)&&!f.ok):S.pFlt==='uns'?!p.analysis&&!p.findings.length&&!p.bgRun:true));
+  const vis=pcSortPhotos(S.photos).filter(p=>p.sample||(S.pFlt==='pend'?p.findings.some(f=>done(f)&&!f.ok):S.pFlt==='uns'?!p.analysis&&!p.findings.length&&!p.bgRun:true));
   vis.forEach(p=>{const c=s=>p.findings.filter(f=>f.sev===s).length;
     const ps=!!S.psel&&!p.sample,on2=ps&&S.psel.has(p.id);
     T.append(h('div',{class:'thumb'+(p.id===S.cur&&!S.psel?' on':'')+(on2?' ps':''),'data-pid':p.id},
@@ -2986,7 +2989,7 @@ function uiExtra(){deskSoon();queueMicrotask(renderExportCheck);
   $('btnFind2').disabled=$('btnFind').disabled;$('btnRev').disabled=!any;$('btnPackOut').disabled=!real.length;
   const u=$('mUnit').value.trim();$('chipU').textContent=u||'Nhập thông tin audit';$('chip').classList.toggle('empty',!u);
   $('chipD').textContent=[vnDate($('mDate').value),$('mWho').value.trim()].filter(Boolean).join(' · ');
-  const pIdx=Math.max(0,S.photos.findIndex(x=>x.id===S.cur));
+  const pIdx=Math.max(0,pcSortPhotos(S.photos).findIndex(x=>x.id===S.cur));
   if($('pIdxLbl'))$('pIdxLbl').textContent=S.photos.length?`${pIdx+1}/${S.photos.length}`:'0/0';
   if($('btnPrevP'))$('btnPrevP').disabled=S.photos.length<2;
   if($('btnNextP'))$('btnNextP').disabled=S.photos.length<2;

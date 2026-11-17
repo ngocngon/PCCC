@@ -33,7 +33,7 @@ window.fetch = async (u, o = {}) => {
   } else {                                                                  // soát cả ảnh
     const i = k++ % 4;
     let list = [                                                            // ảnh 1: hai lỗi cùng hạng mục 23
-      F('E21', 'Có 3 cửa thoát nạn bị khóa niêm phong, không mở được', 'Priority', [150, 150, 550, 550]),
+      { ...F('E21', 'Có 3 cửa thoát nạn bị khóa niêm phong, không mở được', 'Priority', [150, 150, 550, 550]), also_items: ['HM013'] },
       F('E24', 'Đèn EXIT phía trên cửa thoát nạn không sáng', 'Major', [40, 600, 140, 800])];
     if (i === 1) list = [                                                   // ảnh 2: ba lỗi hạng mục 11 (trong trần)
       F('B5', 'Dây điện ra khỏi hộp đấu nối không có đầu siết cáp hoặc ống bảo vệ', 'Major', [100, 100, 400, 400]),

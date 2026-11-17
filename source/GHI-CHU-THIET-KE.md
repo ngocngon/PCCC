@@ -48,6 +48,15 @@ Phần A là quy tắc nghiệp vụ, không tự ý đổi. Phần B trở đi 
 - Lỗi mẫu lệch hạng mục với "item" bị bỏ, hạng mục theo "item". Bộ sửa tự động theo từ khóa chỉ được đổi lỗi mẫu **bên trong** hạng mục AI đã chọn, không được chuyển sang hạng mục khác (chỉ người dùng hoặc Sổ kinh nghiệm đã xác nhận mới đổi được).
 - Bảng "Danh mục lỗi", ô chọn loại lỗi ở Sửa và Sửa nhóm: nhóm theo "Hạng mục n · tên", tiêu đề lớn theo 5 phân loại của checklist; bỏ hẳn nhóm của RBA.
 
+### A3e. Bản v1.0.5: chọn nhiều hạng mục, thứ tự 1 → 25, xóa nhanh, chèn ảnh, tự học
+
+- **Một lỗi vi phạm 2 hạng mục**: AI ghi hạng mục trọng tâm vào "item" và hạng mục còn lại vào "also_items". Ảnh có lỗi liên quan từ 2 hạng mục trở lên hiện khung **"Chọn hạng mục tính điểm (một hoặc nhiều)"** (ô đánh dấu, mặc định chỉ hạng mục trọng tâm). Hiện ở: nút ⚠ Chọn HM trên dòng lỗi (mở hộp chọn), khung Sửa, đầu màn chấm điểm. Chưa chọn thì hạng mục phụ chưa tính điểm và chưa xuất được file. Hạng mục được chọn đều bị chấm 0 điểm, ảnh xuất hiện ở mỗi hạng mục đó trong Excel và PDF. Lỗi của hạng mục không chọn được chuyển về hạng mục đã chọn. Có nút "Chọn lại".
+- **Thứ tự hạng mục 1 → 25 cho toàn app**: bảng Xác nhận lỗi, danh sách điện thoại, dải ảnh, nút ảnh trước/sau, số thứ tự ảnh đều xếp theo hạng mục trọng tâm của ảnh (lỗi EHS khác và ảnh chưa soát ở cuối).
+- **Xóa nhanh**: nút 🗑 Xóa trên từng dòng lỗi (bấm 2 lần). Xóa đề xuất của AI chưa xác nhận = "không phải lỗi", AI ghi vào Sổ tự học.
+- **Chèn ảnh ở màn chấm điểm**: nút 📷 Ảnh ở mỗi hạng mục → nhập nội dung → "Chèn ảnh lỗi" (nhiều ảnh). Mỗi ảnh thành một lỗi đã xác nhận của hạng mục đó (khoanh cả ảnh), không đưa cho AI soát, có trong Excel và PDF.
+- **Tự học**: lời nhắc AI có thêm phần "HỌC TỪ CÁC LẦN KIỂM TRA TRƯỚC": hạng mục hay vi phạm và cách ghi lỗi đã xác nhận (thư viện lỗi + đợt hiện tại), phán định bị loại, các lần gán nhầm hạng mục. Lời nhắc cấm lỗi mơ hồ ("có thể", "nghi ngờ"…). Lỗi AI viết mơ hồ hoặc giống phán định đã bị loại bị hạ độ chắc chắn (≤55%/50%, dưới ngưỡng 60% thì chuyển sang mục cần kiểm tra thêm) và gắn nhãn "Mơ hồ"/"Từng bị loại". Màn chấm điểm hiện "Hay vi phạm: n/N lần audit".
+- **PDF**: trang ảnh xếp đúng thứ tự hạng mục 1 → 25, mỗi trang một ảnh của một hạng mục (ảnh liên quan 2 hạng mục có 2 trang, không gộp), cuối cùng là lỗi EHS khác.
+
 ### A4. File checklist (.xlsx) là mẫu cố định
 
 - Mẫu trống tạo từ file ví dụ người dùng gửi (`5-mau-checklist-pccc/mau-checklist-pccc.xlsx`). **Không đổi** hạng mục, phân loại, điểm tiêu chuẩn, thang xếp hạng, công thức, bề rộng cột, ô gộp, danh sách chọn OK/NG, khổ in.
@@ -136,6 +145,7 @@ Tiền tố `soat-pccc` cho IndexedDB và localStorage, nên chạy chung trình
 
 | Bản | Nội dung |
 |---|---|
+| **v1.0.5** | Chọn một hoặc nhiều hạng mục cho ảnh/lỗi liên quan nhiều hạng mục; mọi danh sách xếp theo hạng mục 1 → 25; nút xóa nhanh; chèn ảnh bổ sung ở màn chấm điểm; tự học lỗi hay gặp, chặn lỗi mơ hồ; PDF xếp ảnh theo hạng mục, không gộp |
 | **v1.0.4** | Nút chọn hạng mục ngay trên từng dòng lỗi (bảng và thẻ điện thoại); AI phán định theo yêu cầu của 25 hạng mục checklist (trường "item" bắt buộc), bỏ nhóm danh mục RBA |
 | **v1.0.3** | Ảnh trong file Excel cùng khung, cùng kích thước |
 | **v1.0.2** | Chọn tay hạng mục vi phạm ở khung Sửa và Sửa nhóm; một ảnh chỉ tính một hạng mục trọng tâm, lỗi hạng mục thứ hai phải được người đánh giá quyết định |
