@@ -1,0 +1,333 @@
+/* ======================================================================
+   Audit PCCC — Chấm điểm 25 hạng mục, xuất checklist (.xlsx), PDF báo cáo nhanh
+   Gắn vào bản dựng bằng patch_pccc.py, chạy SAU mọi lớp khác (cloud, ai).
+
+   Quy tắc đã chốt:
+   - Hạng mục có bất kỳ lỗi đã xác nhận nào thì NG và được 0 điểm. Một hạng mục có thể có nhiều lỗi:
+     ghi đủ mọi lỗi kèm ảnh.
+   - Hạng mục không có lỗi từ ảnh thì người đánh giá phải tự chấm OK hoặc NG (kèm nội dung);
+     chưa chấm đủ 25 hạng mục thì chưa xuất được.
+   - Lỗi EHS nguy hiểm ngoài checklist (mã EH000) ghi riêng trong PDF, không trừ điểm, không vào file Excel.
+   - File Excel là mẫu cố định: chỉ điền thông tin đầu trang, cột Điểm đánh giá, Kết quả,
+     Nội dung vấn đề, Hình ảnh. Không đổi hạng mục, điểm tiêu chuẩn, công thức.
+   ====================================================================== */
+var PC={
+  KEY:'soat-pccc-ck',st:{m:{},n:{},upd:0},
+  load(){try{const v=JSON.parse(localStorage.getItem(this.KEY)||'null');if(v)this.st=this.clean(v)}catch{}},
+  clean(v){const o={m:{},n:{},upd:Number(v&&v.upd)||0};if(!v||typeof v!=='object')return o;
+    for(const c of RBA.order){if(v.m&&v.m[c]==='OK')o.m[c]='OK';
+      const l=v.n&&Array.isArray(v.n[c])?v.n[c].filter(x=>x&&typeof x.t==='string'&&x.t.trim()).slice(0,20).map(x=>({id:String(x.id||uid()),t:x.t.trim().slice(0,600),a:String(x.a||'').trim().slice(0,120)})):[];
+      if(l.length)o.n[c]=l}
+    return o},
+  save(remote){if(!remote)this.st.upd=Date.now();try{localStorage.setItem(this.KEY,JSON.stringify(this.st))}catch{}
+    if(!remote)try{if(typeof CL!=='undefined'&&API){CL.metaDirty=true;clSoon(3000)}}catch{}},
+  reset(){this.st={m:{},n:{},upd:0};try{localStorage.removeItem(this.KEY)}catch{}},
+  apply(x){this.st=this.clean(x||{});this.save(true);pcRender()},
+  merge(x){if(!x||typeof x!=='object'||(Number(x.upd)||0)<=(this.st.upd||0))return;this.apply(x)},
+  canEdit(){try{if(typeof RO==='function'&&RO()){toast('Bạn chỉ được xem audit này, không chấm điểm được.');return false}}catch{}return true}
+};
+PC.load();
+const PC_GRADE=s=>s<70?'D':s<80?'C':s<90?'B':'A';
+const PC_GCOL={A:'#15803D',B:'#1D4ED8',C:'#B45309',D:'#B91C1C'};
+const pcCodeOf=(f,p)=>{try{resolveRbaCode(f,p)}catch{}return RBA.codes[f.code]?f.code:'EH000'};
+/* Trạng thái từng hạng mục, tính từ lỗi trên ảnh và phần chấm tay */
+function pcState(){
+  const real=S.photos.filter(p=>!p.sample),by={},pend={},ehs=[];
+  for(const c of RBA.order){by[c]=[];pend[c]=0}
+  for(const p of real)for(const f of p.findings){if(!done(f))continue;const c=pcCodeOf(f,p);
+    if(c==='EH000'){if(f.ok)ehs.push({p,f});continue}
+    if(f.ok)by[c].push({p,f});else pend[c]++}
+  let lost=0,nNG=0,nOK=0,nOpen=0;const items=RBA.order.map(c=>{const v=RBA.codes[c],notes=PC.st.n[c]||[],faults=by[c];
+    const st=faults.length||notes.length?'NG':PC.st.m[c]==='OK'?'OK':'';
+    if(st==='NG'){lost+=v.pts;nNG++}else if(st==='OK')nOK++;else nOpen++;
+    return{c,v,st,faults,notes,pend:pend[c],auto:faults.length>0}});
+  const score=100-lost;return{items,score,grade:PC_GRADE(score),lost,nNG,nOK,nOpen,ehs,nFault:items.reduce((s,x)=>s+x.faults.length+x.notes.length,0)}
+}
+function pcGroups(st){const g=[];for(const it of st.items){let x=g[g.length-1];if(!x||x.g!==it.v.g){x={g:it.v.g,gk:it.v.gk,items:[],max:0,got:0};g.push(x)}x.items.push(it);x.max+=it.v.pts;if(it.st!=='NG')x.got+=it.v.pts}return g}
+
+/* ---------- Màn chấm điểm (trong Báo cáo & dữ liệu) ---------- */
+let PC_OPEN='',PC_ARM=0;
+function pcTyping(){const a=document.activeElement;return!!(a&&a.closest&&a.closest('#pcList')&&/^(TEXTAREA|INPUT)$/.test(a.tagName))}
+function pcSetOK(c){if(!PC.canEdit())return;if(PC.st.m[c]==='OK')delete PC.st.m[c];else PC.st.m[c]='OK';PC.save();pcRender()}
+function pcAddNote(c,t,a){t=String(t||'').trim();if(!t)return toast('Hãy nhập nội dung vấn đề.');if(!PC.canEdit())return;
+  (PC.st.n[c]=PC.st.n[c]||[]).push({id:uid(),t:t.slice(0,600),a:String(a||'').trim().slice(0,120)});delete PC.st.m[c];PC.save();PC_OPEN='';pcRender(true)}
+function pcDelNote(c,id){if(!PC.canEdit())return;PC.st.n[c]=(PC.st.n[c]||[]).filter(x=>x.id!==id);if(!PC.st.n[c].length)delete PC.st.n[c];PC.save();pcRender(true)}
+function pcGoto(p,f){S.listAll=false;S.cur=p.id;S.sel=f.id;if(isMobile())setView('review');else setDView('review');renderAll();try{fit()}catch{}}
+function pcRender(force){
+  const box=$('pcList');if(!box)return;if(!force&&pcTyping())return;
+  const st=pcState(),sum=$('pcSum');
+  $('pcN').textContent=st.nOpen?`(còn ${st.nOpen} chưa chấm)`:'(đã chấm đủ)';
+  sum.replaceChildren(...[
+    h('div',{class:'pcscore'},h('b',{style:`color:${PC_GCOL[st.grade]}`},String(st.score)),h('small',null,'/100'),h('span',{class:'pcgrade',style:`background:${PC_GCOL[st.grade]}`},`Hạng ${st.grade}`)),
+    h('div',{class:'pcstat'},h('span',{class:'ng'},`NG ${st.nNG}`),h('span',{class:'ok'},`OK ${st.nOK}`),st.nOpen?h('span',{class:'op'},`Chưa chấm ${st.nOpen}`):null,st.ehs.length?h('span',{class:'eh',title:'Ghi riêng trong PDF, không trừ điểm'},`EHS khác ${st.ehs.length}`):null),
+    st.nOpen?h('p',{class:'hint'},st.nOpen===25?'Điểm tạm tính. Chấm OK hoặc NG cho từng hạng mục; hạng mục có lỗi đã xác nhận trên ảnh tự động NG.':`Điểm tạm tính, còn ${st.nOpen} hạng mục chưa chấm.`):null,
+    st.nOpen?h('button',{class:'btn sm'+(PC_ARM?' is-armed':''),onclick:e=>{if(!PC.canEdit())return;if(Date.now()-PC_ARM>4000){PC_ARM=Date.now();e.currentTarget.textContent=`Bấm lần nữa: chấm OK cho ${st.nOpen} hạng mục chưa có lỗi`;e.currentTarget.classList.add('is-armed');setTimeout(()=>{PC_ARM=0;pcRender()},4100);return}
+      PC_ARM=0;for(const it of st.items)if(!it.st&&!it.pend)PC.st.m[it.c]='OK';PC.save();pcRender(true);toast('Đã chấm OK cho các hạng mục chưa có lỗi. Hạng mục còn lỗi chờ xác nhận được giữ lại.')}},`Chấm OK cho ${st.nOpen} hạng mục chưa có lỗi`):null].filter(Boolean));
+  const rows=[];
+  for(const g of pcGroups(st)){
+    rows.push(h('div',{class:'pcg'},h('b',null,g.g),h('small',null,g.gk),h('span',null,`${g.got}/${g.max}`)));
+    for(const it of g.items){const v=it.v,c=it.c,open=PC_OPEN===c;
+      const body=[];
+      for(const{p,f}of it.faults)body.push(h('li',{class:'pcf'},h('button',{class:'pcth',title:'Mở ảnh',onclick:()=>pcGoto(p,f)},h('img',{src:p.thumb,alt:''})),h('span',null,(p.area?p.area+': ':'')+f.title)));
+      for(const n of it.notes)body.push(h('li',{class:'pcf note'},h('i',null,'Hồ sơ'),h('span',null,(n.a?n.a+': ':'')+n.t),h('button',{class:'icon','aria-label':'Xóa nội dung này',title:'Xóa',onclick:()=>pcDelNote(c,n.id)},'×')));
+      if(it.pend)body.push(h('li',{class:'pcf pend'},h('span',null,`${it.pend} lỗi AI đề xuất đang chờ xác nhận`),h('button',{class:'btn sm btn-cfm',onclick:()=>showReview('pend')},'Đi xác nhận ›')));
+      let ed=null;
+      if(open){const ta=h('textarea',{rows:3,placeholder:'Nội dung vấn đề, ví dụ: Giấy phép làm việc có lửa chưa có mục kiểm tra tàn lửa sau 1 giờ và 3 giờ'}),ar=h('input',{placeholder:'Khu vực hoặc "Hồ sơ" (không bắt buộc)'});
+        ed=h('div',{class:'pced'},ar,ta,h('div',{class:'acts'},h('button',{class:'btn sm primary',onclick:()=>pcAddNote(c,ta.value,ar.value)},'Lưu nội dung NG'),h('button',{class:'btn sm',onclick:()=>{PC_OPEN='';pcRender(true)}},'Hủy')),
+          h('p',{class:'hint'},'Dùng cho lỗi không có ảnh (hồ sơ, phỏng vấn). Lỗi có ảnh: thêm ảnh rồi khoanh vùng để ảnh vào báo cáo.'));
+        setTimeout(()=>{try{ta.focus()}catch{}},30)}
+      rows.push(h('div',{class:'pci '+(it.st==='NG'?'ng':it.st==='OK'?'ok':'op')},
+        h('div',{class:'pch'},h('b',{class:'pcno'},String(v.no)),
+          h('div',{class:'pct'},h('span',null,v.vi),h('small',null,v.ko),v.doc?h('em',null,'Chủ yếu kiểm tra hồ sơ'):null),
+          h('div',{class:'pcp'},h('b',null,it.st==='NG'?'0':String(v.pts)),h('small',null,`/${v.pts}`)),
+          h('div',{class:'pcb'},
+            h('button',{class:'pcok'+(it.st==='OK'?' on':''),disabled:it.st==='NG',title:it.st==='NG'?'Hạng mục đang có lỗi nên là NG':'Đạt',onclick:()=>pcSetOK(c)},'OK'),
+            h('button',{class:'pcng'+(it.st==='NG'?' on':''),title:'Không đạt: thêm nội dung vấn đề',onclick:()=>{PC_OPEN=open?'':c;pcRender(true)}},it.st==='NG'?`NG · ${it.faults.length+it.notes.length}`:'NG'))),
+        body.length?h('ul',{class:'pcl'},...body):null,ed))}
+  }
+  box.replaceChildren(...rows);
+  if(st.ehs.length)box.append(h('div',{class:'pcg eh'},h('b',null,'Lỗi EHS nguy hiểm khác'),h('small',null,'Ghi riêng trong PDF, không trừ điểm'),h('span',null,String(st.ehs.length))),
+    h('ul',{class:'pcl ehl'},...st.ehs.map(({p,f})=>h('li',{class:'pcf'},h('button',{class:'pcth',onclick:()=>pcGoto(p,f)},h('img',{src:p.thumb,alt:''})),h('span',null,(p.area?p.area+': ':'')+f.title)))));
+  try{renderExportCheck()}catch{}
+}
+{const _rh=renderHub;renderHub=function(...a){const r=_rh.apply(this,a);try{pcRender()}catch(e){console.warn(e)}return r}}
+{const _ra=renderAll;renderAll=function(...a){const r=_ra.apply(this,a);try{if($('pcList')&&$('pcList').offsetParent)pcRender()}catch{}return r}}
+{const _ui=uiState;uiState=function(...a){const r=_ui.apply(this,a);try{$('btnFind').disabled=!S.photos.some(p=>!p.sample)&&!Object.keys(PC.st.m).length&&!Object.keys(PC.st.n).length}catch{}return r}}
+/* Tổng quan: thẻ điểm */
+{const _rd=renderDash;renderDash=function(...a){const r=_rd.apply(this,a);try{const B=$('dashB');if(!B)return r;const st=pcState(),old=B.querySelector('.pcdash');if(old)old.remove();
+  const gs=pcGroups(st);
+  B.prepend(h('div',{class:'dcard pcdash',style:'grid-column:1/-1'},
+    h('div',{class:'pcd-l'},h('small',null,'Điểm checklist PCCC'+(st.nOpen?' (tạm tính)':'')),h('div',{class:'pcscore'},h('b',{style:`color:${PC_GCOL[st.grade]}`},String(st.score)),h('small',null,'/100'),h('span',{class:'pcgrade',style:`background:${PC_GCOL[st.grade]}`},`Hạng ${st.grade}`)),
+      h('div',{class:'pcstat'},h('span',{class:'ng'},`NG ${st.nNG}`),h('span',{class:'ok'},`OK ${st.nOK}`),st.nOpen?h('span',{class:'op'},`Chưa chấm ${st.nOpen}`):null,st.ehs.length?h('span',{class:'eh'},`EHS khác ${st.ehs.length}`):null),
+      h('button',{class:'btn sm primary',onclick:()=>openHub()},st.nOpen?'Chấm điểm ›':'Xem bảng điểm ›')),
+    h('div',{class:'pcd-r'},...gs.map(g=>h('div',{class:'pcbar'},h('span',null,g.g),h('i',null,h('u',{style:`width:${g.max?Math.round(g.got/g.max*100):0}%;background:${g.got===g.max?'#15803D':g.got/g.max>=.5?'#B45309':'#B91C1C'}`})),h('b',null,`${g.got}/${g.max}`))))))}catch(e){console.warn(e)}return r}}
+
+/* ---------- Điều kiện xuất: phải chấm đủ 25 hạng mục ---------- */
+exportReady=function(){
+  const real=S.photos.filter(p=>!p.sample),its=real.flatMap(p=>p.findings),pend=its.filter(f=>!f.ok).length,ok=its.length-pend;
+  const run=real.filter(p=>p.bgRun||p.findings.some(f=>f.pending)).length,uns=real.filter(p=>!p.analysis&&!p.findings.length&&!p.bgRun);
+  const vendor=$('mUnit').value.trim(),who=$('mWho').value.trim(),st=pcState();
+  const goMeta=id=>()=>{openHub();const d=$(id).closest('details');if(d)d.open=true;setTimeout(()=>$(id).focus(),60)};
+  const goPc=()=>{openHub();const d=$('pcBox');if(d){d.open=true;setTimeout(()=>{try{d.scrollIntoView({block:'start',behavior:'smooth'})}catch{}},60)}};
+  const checks=[
+    {ok:!!vendor,t:vendor?`Công ty: ${vendor}`:'Chưa nhập tên công ty',btn:vendor?null:['Nhập ›',goMeta('mUnit'),'primary']},
+    {ok:!!who,warn:!who,t:who?`Người kiểm tra: ${who}`:'Chưa nhập người kiểm tra (PIC), nên nhập',btn:who?null:['Nhập',goMeta('mWho')]},
+    {ok:!run,t:run?`AI đang soát ${run} ảnh, chờ xong`:'AI đã soát xong'},
+    {ok:!uns.length,warn:!!uns.length,t:uns.length?`${uns.length} ảnh chưa được AI soát`:'Mọi ảnh đã được soát',btn:uns.length&&AI.ok?['Soát ngay',()=>runAll(uns)]:null},
+    {ok:!pend,t:pend?`Còn ${pend}/${its.length} lỗi chưa xác nhận`:its.length?`Đã xác nhận hết ${its.length} lỗi`:'Không có lỗi nào từ ảnh',btn:pend?['Đi xác nhận ›',()=>showReview('pend'),'btn-cfm']:null},
+    {ok:!st.nOpen,t:st.nOpen?`Còn ${st.nOpen}/25 hạng mục chưa chấm OK hoặc NG`:`Đã chấm đủ 25 hạng mục: ${st.score} điểm, hạng ${st.grade}`,btn:st.nOpen?['Chấm điểm ›',goPc,'primary']:null}];
+  const ready=checks.every(c=>c.ok||c.warn);
+  return{ready,checks,pend,ok,its,pc:st,why:checks.find(c=>!c.ok&&!c.warn)?.t||''};
+};
+gateExport=function(){const r=exportReady();if(r.ready)return true;toast(`Chưa xuất được: ${r.why}.`);if(r.pend)showReview('pend');else{openHub();if(r.pc&&r.pc.nOpen){const d=$('pcBox');if(d)d.open=true}}return false};
+
+/* ---------- Dữ liệu xuất: lỗi theo hạng mục, đánh số trong từng hạng mục ---------- */
+function pcCollect(){
+  const st=pcState(),groups=splitGroupsByCode(gather()),by=new Map(),ehs=[];
+  for(const g of groups){const c=pcCodeOf(g.items[0].f,g.p);if(c==='EH000'){ehs.push(g);continue}if(!by.has(c))by.set(c,[]);by.get(c).push(g)}
+  const rows=st.items.map(it=>{const gs=by.get(it.c)||[],ent=[],pics=[];let n=0;
+    for(const g of gs){const items=g.items.map(x=>({f:x.f,n:++n}));pics.push({p:g.p,items});for(const x of items)ent.push({a:g.p.qxg?'':String(g.p.area||'').trim(),t:String(x.f.title||'').trim()})}
+    for(const nt of it.notes)ent.push({a:nt.a,t:nt.t,note:true});
+    return{...it,st:ent.length?'NG':it.st,ent,pics}});
+  return{st,rows,ehs,groups};
+}
+function pcTexts(col){const out=[];for(const r of col.rows)for(const e of r.ent)out.push(e.a,e.t);for(const g of col.ehs){out.push(g.p.area);for(const x of g.items)out.push(x.f.title)}return out}
+function pcItemText(r,L){
+  const k=r.ent.length,num=i=>k>1?`${i+1}. `:'',tr=t=>L?lxT(L,t):'';
+  const vi=r.ent.map((e,i)=>`${num(i)}${e.a?e.a+': ':''}${e.t}`);
+  if(!L)return vi.join('\n');
+  const x=r.ent.map((e,i)=>{const a=e.a?(tr(e.a)||e.a):'',t=tr(e.t);return t?`${num(i)}${a?a+': ':''}${t}`:''}).filter(Boolean);
+  return x.length?vi.join('\n')+(k>1?'\n\n':'\n')+x.join('\n'):vi.join('\n');
+}
+
+/* ---------- Xuất checklist (.xlsx): điền vào mẫu cố định ---------- */
+const PCX={colPx:380,textPx:398,emu:9525,gap:6};
+function pcTextPt(text,pt){const px=pt*4/3;let lines=0;for(const l of String(text).split('\n')){let w=0;for(const ch of l)w+=/[ᄀ-ᇿ⺀-鿿가-힣＀-￯]/.test(ch)?px:px*.56;lines+=Math.max(1,Math.ceil(w*1.1/PCX.textPx))}return lines*pt*1.24+10}
+function pcStyle(text,k){const left=k>1;for(const[pt,c,l]of[[18,15,21],[14,22,23],[11,24,25]]){const hpt=pcTextPt(text,pt);if(hpt<=400||pt===11)return{s:left?l:c,pt:hpt}}}
+function pcImgLayout(n,rowPx){if(!n)return{cols:0,w:0,h:0,rows:0,px:0};const cols=n===1?1:n<=6?2:3,rows=Math.ceil(n/cols);let w=Math.floor((PCX.colPx-(cols+1)*PCX.gap)/cols),hh=Math.round(w*3/4);
+  if(cols===1){hh=Math.round(clamp((rowPx||152)-2*PCX.gap,140,Math.round((PCX.colPx-2*PCX.gap)*3/4)));w=Math.round(hh*4/3)}
+  return{cols,w,h:hh,rows,px:rows*(hh+PCX.gap)+PCX.gap}}
+const pcCell=(ref,s,v)=>typeof v==='number'?`<c r="${ref}" s="${s}"><v>${v}</v></c>`:v?`<c r="${ref}" s="${s}" t="inlineStr"><is><t xml:space="preserve">${esc(v)}</t></is></c>`:`<c r="${ref}" s="${s}"/>`;
+function pcSetCell(body,ref,xml){const rx=new RegExp(`<c r="${ref}"(?: [^>/]*)?(?:/>|>[\\s\\S]*?</c>)`);if(!rx.test(body))throw new Error('Mẫu thiếu ô '+ref);return body.replace(rx,()=>xml)}
+let pcBusy=false;
+async function pcExportXlsx(){
+  if(pcBusy)return;if(!gateExport())return;
+  if(!window.JSZip)return toast('Thư viện tạo file chưa tải xong. Hãy thử lại sau vài giây.');
+  const B=$('btnFind'),B2=$('btnFind2'),old=[B.textContent,B2.textContent];pcBusy=true;B.disabled=B2.disabled=true;B.textContent=B2.textContent='Đang tạo…';
+  try{
+    try{if(typeof qxPrep==='function')await qxPrep()}catch(e){console.warn(e)}
+    const col=pcCollect(),L=lxL();let miss=0;
+    if(L){busy(cur(),`Đang dịch nội dung sang ${CAPN[L]}…`);try{miss=await lxEnsure(L,pcTexts(col),t=>busy(cur(),t))}catch(e){console.warn(e)}finally{busy(null)}}
+    const z=await JSZip.loadAsync(RBA.tpl.b64,{base64:true}),put=(k,v)=>z.file(k,v,{createFolders:false});
+    let sh=await z.file('xl/worksheets/sheet1.xml').async('string');
+    const date=$('mDate').value||today(),head={2:$('mUnit').value.trim(),3:$('mWho').value.trim(),4:vnDate(date),5:$('mSub').value.trim()};
+    let pics='',rels='',no=0;const score=col.rows.reduce((s,r)=>s+(r.st==='NG'?0:r.v.pts),0),grade=PC_GRADE(score);
+    const byRow=new Map(col.rows.map(r=>[r.v.row,r]));
+    const media=[];
+    sh=sh.replace(/<row r="(\d+)"([^>]*)>([\s\S]*?)<\/row>/g,(m,rn,attrs,body)=>{
+      const r=Number(rn);
+      if(head[r]!==undefined){const s=(body.match(new RegExp(`<c r="D${r}" s="(\\d+)"`))||[])[1]||'3';body=pcSetCell(body,'D'+r,pcCell('D'+r,s,head[r]));
+        if(r===2)body=body.replace(/(<c r="I2"[^>]*>[\s\S]*?<v>)[^<]*(<\/v>)/,`$1${grade}$2`)}
+      const it=byRow.get(r);
+      if(it){
+        if(it.st==='NG'){const text=pcItemText(it,L),sty=pcStyle(text,it.ent.length),base=Number((attrs.match(/ht="([\d.]+)"/)||[])[1])||114;
+          const lay=pcImgLayout(it.pics.length,Math.max(base,Math.min(409,sty.pt))/.75),pt=Math.min(409,Math.max(base,sty.pt,lay.px*.75+6));
+          attrs=attrs.replace(/ht="[\d.]+"/,`ht="${pt.toFixed(1)}"`);
+          body=pcSetCell(body,'F'+r,pcCell('F'+r,15,0));body=pcSetCell(body,'G'+r,pcCell('G'+r,15,'NG'));body=pcSetCell(body,'H'+r,pcCell('H'+r,sty.s,text));
+          const rowPx=pt/.75,usedW=lay.cols*lay.w+(lay.cols-1)*PCX.gap,x0=Math.max(PCX.gap,Math.round((PCX.colPx-usedW)/2)),usedH=lay.rows*lay.h+(lay.rows-1)*PCX.gap,y0=Math.max(3,Math.round((rowPx-usedH)/2));
+          it.pics.forEach((pic,i)=>{no++;const cx=i%lay.cols,cy=Math.floor(i/lay.cols),x=x0+cx*(lay.w+PCX.gap),y=y0+cy*(lay.h+PCX.gap);
+            media.push({no,pic});
+            rels+=`<Relationship Id="rId${no}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/image${no}.jpeg"/>`;
+            pics+=`<xdr:oneCellAnchor><xdr:from><xdr:col>8</xdr:col><xdr:colOff>${x*PCX.emu}</xdr:colOff><xdr:row>${r-1}</xdr:row><xdr:rowOff>${y*PCX.emu}</xdr:rowOff></xdr:from><xdr:ext cx="${lay.w*PCX.emu}" cy="${lay.h*PCX.emu}"/><xdr:pic><xdr:nvPicPr><xdr:cNvPr id="${no+1}" name="HM${it.v.no} anh ${i+1}"/><xdr:cNvPicPr><a:picLocks noChangeAspect="1"/></xdr:cNvPicPr></xdr:nvPicPr><xdr:blipFill><a:blip r:embed="rId${no}"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill><xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${lay.w*PCX.emu}" cy="${lay.h*PCX.emu}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr></xdr:pic><xdr:clientData/></xdr:oneCellAnchor>`});
+        }else{body=pcSetCell(body,'F'+r,pcCell('F'+r,8,it.v.pts));body=pcSetCell(body,'G'+r,pcCell('G'+r,8,'OK'))}
+      }
+      if(r===RBA.tpl.last+1)body=body.replace(/(<c r="F\d+"[^>]*>[\s\S]*?<v>)[^<]*(<\/v>)/,`$1${score}$2`);
+      return`<row r="${rn}"${attrs}>${body}</row>`});
+    for(const{no:k,pic}of media)put(`xl/media/image${k}.jpeg`,await photoCell(pic.p,pic.items));
+    put('xl/worksheets/sheet1.xml',sh);
+    put('xl/drawings/drawing1.xml',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">${pics}</xdr:wsDr>`);
+    put('xl/drawings/_rels/drawing1.xml.rels',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${rels}</Relationships>`);
+    const blob=await z.generateAsync({type:'blob',compression:'DEFLATE',mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    await saveFile(`Checklist-PCCC_${safeName($('mUnit').value||'kiem-tra')}_${date.split('-').reverse().join('')}.xlsx`,blob);
+    inheritAfterExport(col.groups).catch(e=>console.error(e));
+    const notes=[`${score} điểm, hạng ${grade}`];if(miss>0)notes.push(`${miss} câu chưa dịch được nên chỉ có tiếng Việt`);if(col.ehs.length)notes.push(`${col.ehs.reduce((s,g)=>s+g.items.length,0)} lỗi EHS khác chỉ có trong PDF`);
+    setTimeout(()=>toast('Đã xuất checklist: '+notes.join('; ')+'.'),900);
+  }catch(e){console.error(e);toast('Không tạo được file checklist. Hãy thử lại.')}
+  finally{pcBusy=false;B.textContent=old[0];B2.textContent=old[1];uiState();try{renderExportCheck()}catch{}}
+}
+exportFindings=pcExportXlsx;
+
+/* ---------- PDF báo cáo nhanh (16:9): bìa có điểm, bảng điểm, danh sách NG, mỗi ảnh một trang ---------- */
+const PCL={
+  vi:{score:'Điểm đánh giá',grade:'Xếp hạng',cls:'Phân loại',board:'Bảng điểm 25 hạng mục',item:'Hạng mục',std:'Chuẩn',got:'Đạt',res:'Kết quả',nglist:'Nội dung NG theo hạng mục',ehs:'Lỗi EHS nguy hiểm khác (không tính điểm)',ehsShort:'EHS khác',tot:'Tổng',ngItems:'Hạng mục NG',faults:'Số lỗi',photos:'Số ảnh',noNG:'Không có hạng mục NG.',doc:'Hồ sơ'},
+  ko:{score:'점검 점수',grade:'등급',cls:'구분',board:'점검 항목별 점수',item:'점검 항목',std:'기준',got:'점수',res:'결과',nglist:'항목별 부적합 내용',ehs:'기타 중대 EHS 위험 (점수 미반영)',ehsShort:'기타 EHS',tot:'합계',ngItems:'부적합 항목',faults:'부적합 건수',photos:'사진 수',noNG:'부적합 항목 없음.',doc:'기록'},
+  zh:{score:'检查得分',grade:'等级',cls:'分类',board:'25项检查得分表',item:'检查项目',std:'标准分',got:'得分',res:'结果',nglist:'各项目不符合内容',ehs:'其他重大EHS隐患（不计分）',ehsShort:'其他EHS',tot:'合计',ngItems:'不符合项目',faults:'问题数',photos:'照片数',noNG:'无不符合项目。',doc:'记录'},
+  en:{score:'Score',grade:'Grade',cls:'Category',board:'Scores of 25 items',item:'Item',std:'Std',got:'Score',res:'Result',nglist:'NG details by item',ehs:'Other major EHS hazards (not scored)',ehsShort:'Other EHS',tot:'Total',ngItems:'NG items',faults:'Findings',photos:'Photos',noNG:'No NG item.',doc:'Record'}};
+const pcLab=(k,L)=>L==='vi'||!PCL[L]?PCL.vi[k]:`${PCL.vi[k]} / ${PCL[L][k]}`;
+const PCW=1920,PCH=1080,PCM=64,PCNAVY='#14324A';
+function pcFrame(g,L,FB,title,sub,page,total){
+  g.fillStyle='#FFFFFF';g.fillRect(0,0,PCW,PCH);g.fillStyle=PCNAVY;g.fillRect(0,0,PCW,10);g.textBaseline='alphabetic';g.textAlign='left';
+  g.fillStyle='#14191C';g.font=`700 44px ${FB}`;g.fillText(trunc(g,title,PCW-2*PCM-520),PCM,92);
+  if(sub){g.fillStyle='#1F4E8C';g.font=`500 26px ${FB}`;g.fillText(trunc(g,sub,PCW-2*PCM-520),PCM,130)}
+  g.textAlign='right';const ven=$('mUnit').value.trim();if(ven){g.fillStyle='#14191C';fitFont(g,ven,500,`600 #px ${FB}`,28,20);g.fillText(trunc(g,ven,500),PCW-PCM,80)}
+  g.fillStyle='#55626A';g.font=`400 24px ${FB}`;g.fillText(vnDate($('mDate').value),PCW-PCM,ven?118:96);g.textAlign='left';
+  g.fillStyle='#E3E8EA';g.fillRect(PCM,158,PCW-2*PCM,2);
+  g.fillStyle='#8A979D';g.font=`400 22px ${FB}`;g.fillText(capLab('rep',L),PCM,PCH-36);g.textAlign='right';g.fillText(`${page} / ${total}`,PCW-PCM,PCH-36);g.textAlign='left';
+}
+function pcChip(g,x,y,text,bg,FB,size){g.font=`700 ${size}px ${FB}`;const w=g.measureText(text).width+size*1.1,hh=size*1.55;g.fillStyle=bg;rrect(g,x,y,w,hh,hh/2);g.fill();g.fillStyle='#fff';g.textBaseline='middle';g.textAlign='left';g.fillText(text,x+size*.55,y+hh/2+1);g.textBaseline='alphabetic';return w}
+async function pcCover(col,L){
+  await fonts();const FB=fontL(L),W=PCW,H=PCH,c=mk(W,H),g=c.getContext('2d'),st=col.st,score=col.rows.reduce((s,r)=>s+(r.st==='NG'?0:r.v.pts),0),grade=PC_GRADE(score);
+  g.fillStyle='#FFFFFF';g.fillRect(0,0,W,H);g.fillStyle=PCNAVY;g.fillRect(0,0,780,H);g.fillStyle='#F5C518';g.fillRect(0,0,780,14);g.textAlign='left';g.textBaseline='alphabetic';
+  let y=300;g.fillStyle='#FFFFFF';g.font=`700 88px ${fontD}`;for(const l of wrapX(g,CAPL.vi.rep,620)){g.fillText(l,90,y);y+=94}
+  if(L!=='vi'){y+=14;g.fillStyle='#F5C518';g.font=`600 52px ${FB}`;for(const l of wrapX(g,CAPL[L].rep,620)){g.fillText(l,90,y);y+=64}}
+  y+=30;g.fillStyle='#C9D6E2';g.font=`400 30px ${FB}`;for(const l of wrapX(g,'Checklist kiểm tra PCCC · 25 hạng mục · 100 điểm',620)){g.fillText(l,90,y);y+=42}
+  g.fillStyle='#8FA6BA';g.font=`600 26px ${FB}`;g.fillText('Audit PCCC',90,H-70);
+  const X=880,VW=W-X-90,rows=[['ven',$('mUnit').value.trim()],['date',vnDate($('mDate').value)],['who',$('mWho').value.trim()],['cls',$('mSub').value.trim()]].filter(r=>r[1]);
+  let ry=120;for(const[k,v]of rows){g.fillStyle='#55626A';g.font=`400 24px ${FB}`;g.fillText(trunc(g,k==='cls'?pcLab('cls',L):capLab(k,L),VW),X,ry);
+    g.fillStyle='#14191C';fitFont(g,v,VW,`700 #px ${FB}`,44,26);g.fillText(trunc(g,v,VW),X,ry+54);g.fillStyle='#E3E8EA';g.fillRect(X,ry+80,VW,2);ry+=128}
+  const by=Math.max(ry+10,660),bh=H-by-90;g.fillStyle='#F3F6F8';rrect(g,X,by,VW,bh,24);g.fill();
+  g.fillStyle='#55626A';g.font=`400 26px ${FB}`;g.fillText(pcLab('score',L),X+40,by+56);
+  g.fillStyle=PC_GCOL[grade];g.font=`700 190px ${fontD}`;const sw=g.measureText(String(score)).width;g.fillText(String(score),X+40,by+bh-56);
+  g.fillStyle='#55626A';g.font=`600 60px ${fontD}`;g.fillText('/100',X+52+sw,by+bh-60);
+  const gx=X+VW-250;g.fillStyle=PC_GCOL[grade];rrect(g,gx,by+44,210,210,28);g.fill();g.fillStyle='#fff';g.textAlign='center';g.font=`700 150px ${fontD}`;g.fillText(grade,gx+105,by+200);
+  g.fillStyle='#55626A';g.font=`400 24px ${FB}`;g.fillText(pcLab('grade',L),gx+105,by+292);g.textAlign='left';
+  const nf=col.rows.reduce((s,r)=>s+r.ent.length,0),np=col.rows.reduce((s,r)=>s+r.pics.length,0)+col.ehs.length,nn=col.rows.filter(r=>r.st==='NG').length,ne=col.ehs.reduce((s,x)=>s+x.items.length,0);
+  const sx=X+40+sw+170,sww=gx-sx-24;let sy=by+bh-56-3*40-(ne?40:0)+30;
+  for(const[k,v]of[['ngItems',`${nn}/25`],['faults',String(nf)],['photos',String(np)],...(ne?[['ehsShort',String(ne)]]:[])]){g.fillStyle='#55626A';g.font=`400 23px ${FB}`;const lb=trunc(g,PCL.vi[k]+':',sww-70);g.fillText(lb,sx,sy);g.fillStyle='#14191C';g.font=`700 25px ${FB}`;g.fillText(v,sx+g.measureText(lb).width+34,sy);sy+=40}
+  return c;
+}
+async function pcBoard(col,L,page,total){
+  await fonts();const FB=fontL(L),c=mk(PCW,PCH),g=c.getContext('2d');pcFrame(g,L,FB,PCL.vi.board,L==='vi'?'':PCL[L].board,page,total);
+  const top=186,bot=PCH-78,colW=(PCW-2*PCM-40)/2,per=13,rh=(bot-top-44)/per,score=col.rows.reduce((s,r)=>s+(r.st==='NG'?0:r.v.pts),0);
+  for(let k=0;k<2;k++){const x=PCM+k*(colW+40);g.fillStyle='#EEF2F5';g.fillRect(x,top,colW,40);g.fillStyle='#55626A';g.font=`600 20px ${FB}`;g.textAlign='left';
+    g.fillText('No',x+14,top+27);g.fillText(pcLab('item',L),x+70,top+27);g.textAlign='center';g.fillText(pcLab('std',L).split(' / ')[0],x+colW-250,top+27);g.fillText(pcLab('got',L).split(' / ')[0],x+colW-160,top+27);g.fillText(pcLab('res',L).split(' / ')[0],x+colW-62,top+27);g.textAlign='left';
+    const part=col.rows.slice(k*per,k*per+per);
+    part.forEach((r,i)=>{const y=top+44+i*rh,ng=r.st==='NG';if(ng){g.fillStyle='#FFF7CC';g.fillRect(x,y,colW,rh-3)}
+      g.fillStyle='#14191C';g.font=`700 26px ${fontD}`;g.fillText(String(r.v.no),x+16,y+rh*.5+8);
+      const tw=colW-70-300;g.font=`500 18px ${FB}`;g.fillStyle='#14191C';const vl=wrapX(g,r.v.vi,tw).slice(0,2),more=wrapX(g,r.v.vi,tw).length>2;let ty=y+(vl.length>1?17:27);vl.forEach((l,q)=>{g.fillText(q===1&&more?trunc(g,l+' …',tw):l,x+70,ty);ty+=21});
+      g.font=`400 14px ${FB}`;g.fillStyle='#1F4E8C';g.fillText(trunc(g,r.v.ko,tw),x+70,ty-2);
+      g.textAlign='center';g.fillStyle='#55626A';g.font=`500 24px ${FB}`;g.fillText(String(r.v.pts),x+colW-250,y+rh*.5+8);
+      g.fillStyle=ng?'#B91C1C':'#14191C';g.font=`700 26px ${FB}`;g.fillText(ng?'0':String(r.v.pts),x+colW-160,y+rh*.5+8);g.textAlign='left';
+      pcChip(g,x+colW-100,y+rh*.5-17,ng?'NG':'OK',ng?'#B91C1C':'#15803D',FB,20);
+      g.fillStyle='#E3E8EA';g.fillRect(x,y+rh-3,colW,1)});
+    if(k===1){const y=top+44+part.length*rh;g.fillStyle=PCNAVY;g.fillRect(x,y,colW,rh-3);g.fillStyle='#fff';g.font=`700 28px ${FB}`;g.fillText(pcLab('tot',L),x+70,y+rh*.5+9);g.textAlign='center';g.fillText('100',x+colW-250,y+rh*.5+9);g.fillStyle='#F5C518';g.font=`700 32px ${FB}`;g.fillText(String(score),x+colW-160,y+rh*.5+10);g.font=`700 28px ${FB}`;g.fillText(PC_GRADE(score),x+colW-62,y+rh*.5+9);g.textAlign='left'}}
+  return c;
+}
+/* Danh sách NG: chia trang theo chiều cao chữ */
+function pcNgBlocks(col,L,FB){
+  const m=mk(10,10).getContext('2d'),tw=PCW-2*PCM-90,out=[];
+  for(const r of col.rows){if(r.st!=='NG')continue;const lines=[];
+    r.ent.forEach((e,i)=>{m.font=`500 25px ${FB}`;const vi=`${r.ent.length>1?i+1+'. ':''}${e.a?e.a+': ':''}${e.t}`;for(const l of wrapX(m,vi,tw))lines.push({t:l,c:'#14191C',f:`500 25px ${FB}`,hh:34});
+      if(L!=='vi'){const x=lxT(L,e.t);if(x){m.font=`400 22px ${FB}`;const a=e.a?(lxT(L,e.a)||e.a)+': ':'';for(const l of wrapX(m,a+x,tw))lines.push({t:l,c:'#1F4E8C',f:`400 22px ${FB}`,hh:30})}}
+      lines.push({gap:8})});
+    out.push({r,lines,hh:58+lines.reduce((s,l)=>s+(l.gap||l.hh),0)+14})}
+  return out;
+}
+function pcNgPages(blocks){const max=PCH-78-186,pages=[];let cur=[],hh=0;for(const b of blocks){if(cur.length&&hh+b.hh>max){pages.push(cur);cur=[];hh=0}cur.push(b);hh+=b.hh}if(cur.length)pages.push(cur);return pages}
+function pcNgCanvas(blocks,L,FB,page,total,part,parts){
+  const c=mk(PCW,PCH),g=c.getContext('2d');pcFrame(g,L,FB,PCL.vi.nglist+(parts>1?` (${part}/${parts})`:''),L==='vi'?'':PCL[L].nglist,page,total);
+  let y=186;const maxY=PCH-78;
+  for(const b of blocks){const v=b.r.v;g.fillStyle='#F3F6F8';g.fillRect(PCM,y,PCW-2*PCM,46);const w=pcChip(g,PCM+10,y+7,`${v.no}`,'#B91C1C',FB,21);
+    g.fillStyle='#14191C';g.font=`700 25px ${FB}`;g.fillText(trunc(g,v.vi,PCW-2*PCM-w-220),PCM+24+w,y+32);g.textAlign='right';g.fillStyle='#B91C1C';g.font=`700 25px ${FB}`;g.fillText(`0/${v.pts}`,PCW-PCM-14,y+32);g.textAlign='left';
+    y+=58;for(const l of b.lines){if(l.gap){y+=l.gap;continue}if(y+l.hh>maxY+4)break;g.fillStyle=l.c;g.font=l.f;g.fillText(l.t,PCM+70,y+l.hh*.74);y+=l.hh}y+=14}
+  return c;
+}
+/* Một ảnh một trang: ảnh có khoanh vùng bên trái, lỗi kèm số hạng mục bên phải */
+async function pcSlide(p,items,idx,L,page,total){
+  const im=await ensureImg(p);await fonts();
+  const FB=fontL(L),W=PCW,H=PCH,M=PCM,c=mk(W,H),g=c.getContext('2d');
+  g.fillStyle='#FFFFFF';g.fillRect(0,0,W,H);g.textBaseline='alphabetic';g.textAlign='left';g.fillStyle=PCNAVY;g.fillRect(0,0,W,10);
+  rrect(g,M,40,88,88,16);g.fill();g.fillStyle='#FFFFFF';g.font=`700 46px ${fontD}`;g.textAlign='center';g.textBaseline='middle';g.fillText(String(idx+1).padStart(2,'0'),M+44,86);g.textAlign='left';g.textBaseline='alphabetic';
+  const area=String(p.area||'').trim()||`${CAPL.vi.photo} ${idx+1}`,areaX=L==='vi'?'':capOf(L,p.area),hx=M+116,hw=W-M-hx-640;
+  g.fillStyle='#14191C';fitFont(g,area,hw,`700 #px ${FB}`,46,26);g.fillText(trunc(g,area,hw),hx,areaX?82:100);
+  if(areaX){g.fillStyle='#1F4E8C';fitFont(g,areaX,hw,`500 #px ${FB}`,32,20);g.fillText(trunc(g,areaX,hw),hx,126)}
+  g.textAlign='right';const ven=$('mUnit').value.trim();if(ven){g.fillStyle='#14191C';fitFont(g,ven,600,`600 #px ${FB}`,28,20);g.fillText(trunc(g,ven,600),W-M,80)}
+  g.fillStyle='#55626A';g.font=`400 24px ${FB}`;g.fillText(vnDate($('mDate').value),W-M,ven?118:96);g.textAlign='left';g.fillStyle='#E3E8EA';g.fillRect(M,158,W-2*M,2);
+  const top=188,bot=H-82,bh=bot-top,FW=980,FH=735,px=M,py=top+(bh-FH)/2,nos=items.map(x=>({...x,f:{...x.f,sev:''}}));
+  drawUniform43(g,im,p,nos,px,py,FW,FH,{lw:Math.max(3.5,FW/340),r:clamp(FW/46,18,26),minFrac:.82});g.strokeStyle='#D8E0EA';g.lineWidth=2;g.strokeRect(px,py,FW,FH);
+  const single=items.length<=1,x0=px+FW+52,tx=x0+(single?24:66),tw=W-M-tx,cols=colorsOf(items);
+  let F=null;
+  for(const z of[34,31,28,26,24,22,20,18,16]){const lh=Math.round(z*1.3),xs=Math.round(z*.88),xlh=Math.round(xs*1.3),cs=Math.max(15,Math.round(z*.62)),ch=Math.round(cs*1.55)+8,gap=Math.round(z*.9);let tot=0;
+    const bl=items.map(({f,n})=>{g.font=`600 ${z}px ${FB}`;const tl=wrapX(g,f.title,tw),tr=L==='vi'?'':capOf(L,f.title);g.font=`500 ${xs}px ${FB}`;const xl=tr?wrapX(g,tr,tw):[];const hh=ch+tl.length*lh+(xl.length?8+xl.length*xlh:0);tot+=hh+gap;return{f,n,tl,xl,hh}});
+    tot-=gap;F={z,lh,xs,xlh,cs,ch,gap,bl,tot};if(tot<=bh)break}
+  g.save();g.beginPath();g.rect(x0-6,top-6,W-M-x0+12,bh+12);g.clip();
+  let y=top+Math.max(0,(bh-F.tot)/2);
+  F.bl.forEach((b,i)=>{let ty=y;const code=pcCodeOf(b.f,p),v=RBA.codes[code],eh=code==='EH000';
+    if(single){g.fillStyle=cols[b.f.id][0];rrect(g,x0,ty+4,8,Math.max(24,b.hh-8),4);g.fill()}else badge(g,b.n,'',x0+26,ty+F.ch+F.lh*.5,clamp(F.z*.6,14,23),cols[b.f.id]);
+    const cw=pcChip(g,tx,ty,eh?pcLab('ehsShort',L).split(' / ')[L==='vi'?0:1]||PCL.vi.ehsShort:`${PCL.vi.item} ${v.no}`,eh?'#7C3AED':'#B91C1C',FB,F.cs);
+    g.fillStyle='#55626A';g.font=`500 ${F.cs}px ${FB}`;g.fillText(trunc(g,eh?PCL.vi.ehs:`${v.t} · 0/${v.pts}`,tw-cw-14),tx+cw+12,ty+F.cs*1.15);ty+=F.ch;
+    g.textAlign='left';g.textBaseline='alphabetic';g.fillStyle='#14191C';g.font=`600 ${F.z}px ${FB}`;b.tl.forEach(l=>{g.fillText(l,tx,ty+F.lh*.78);ty+=F.lh});
+    if(b.xl.length){ty+=8;g.fillStyle='#1F4E8C';g.font=`500 ${F.xs}px ${FB}`;b.xl.forEach(l=>{g.fillText(l,tx,ty+F.xlh*.78);ty+=F.xlh})}
+    y+=b.hh;if(i<F.bl.length-1){g.fillStyle='#E3E8EA';g.fillRect(x0,y+F.gap/2-1,W-M-x0,2);y+=F.gap}});
+  g.restore();
+  g.fillStyle='#8A979D';g.font=`400 22px ${FB}`;g.textAlign='left';g.fillText(capLab('rep',L),M,H-36);g.textAlign='right';g.fillText(`${page} / ${total}`,W-M,H-36);g.textAlign='left';
+  return c;
+}
+exportPdf=async function(){
+  if(pdfBusy)return;if(!gateExport())return;
+  const L=capLang(),btns=['btnPdf','prevPdf'].map(id=>$(id)).filter(Boolean),old=btns.map(b=>b.textContent),say=t=>btns.forEach(b=>{b.textContent=t;b.disabled=true});
+  pdfBusy=true;
+  try{
+    try{if(typeof qxPrep==='function')await qxPrep()}catch(e){console.warn(e)}
+    const col=pcCollect();let miss=0;
+    if(L!=='vi'){say('Đang dịch nội dung…');try{miss=await lxEnsure(L,pcTexts(col),say)}catch(e){console.warn(e)}}
+    await fonts();const FB=fontL(L),rank=g=>Math.min(...g.items.map(x=>{const v=RBA.codes[pcCodeOf(x.f,g.p)];return v.no||99}));
+    const slides=gather().slice().sort((a,b)=>rank(a)-rank(b)),ngPages=pcNgPages(pcNgBlocks(col,L,FB));
+    const N=2+ngPages.length+slides.length,pages=[];let pg=0;
+    const push=async(c,q)=>{pages.push({blob:await toBlob(c,'image/jpeg',q||.88),w:c.width,h:c.height});c.width=c.height=0;await new Promise(r=>setTimeout(r,0))};
+    say(`Đang tạo PDF ${++pg}/${N}…`);await push(await pcCover(col,L),.9);
+    say(`Đang tạo PDF ${++pg}/${N}…`);await push(await pcBoard(col,L,pg,N),.9);
+    for(const[i,bl]of ngPages.entries()){say(`Đang tạo PDF ${++pg}/${N}…`);await push(pcNgCanvas(bl,L,FB,pg,N,i+1,ngPages.length),.9)}
+    for(const[i,{p,items}]of slides.entries()){say(`Đang tạo PDF ${++pg}/${N}…`);await push(await pcSlide(p,items,i,L,pg,N),.86)}
+    const ven=$('mUnit').value.trim(),date=$('mDate').value||today();
+    const blob=await buildPdf(pages,`${CAPL.vi.rep}${ven?' – '+ven:''} – ${vnDate(date)}`);
+    await saveFile(`Bao-cao-nhanh-PCCC_${safeName(ven||'kiem-tra')}_${date.split('-').reverse().join('')}.pdf`,blob);
+    if(miss>0)toast(`Lưu ý: ${miss} câu chưa dịch được (chưa có mạng hoặc key AI), tạm hiện tiếng Việt.`);
+  }catch(e){console.error(e);toast('Không tạo được PDF. Hãy thử lại.')}
+  finally{pdfBusy=false;btns.forEach((b,k)=>{b.textContent=old[k];b.disabled=false});syncCap();try{renderExportCheck()}catch{}}
+};
+{const _sc=syncCap;syncCap=function(...a){const r=_sc.apply(this,a);try{if($('btnPdf')&&!pdfBusy)$('btnPdf').textContent=`Xuất PDF báo cáo nhanh (${CAPS[capLang()]})`;if($('prevPdf')&&!pdfBusy)$('prevPdf').textContent='Xuất PDF báo cáo nhanh'}catch{}return r}}
+/* Các nút không dùng trong bản PCCC */
+for(const id of['btnDocx','prevDocx','btnRev'])try{if($(id))$(id).hidden=true}catch{}
+try{const i=$('libFile');if(i)i.setAttribute('accept','.json,application/json')}catch{}
+window.__PC={state:pcState,collect:pcCollect,st:()=>PC.st,xlsx:pcExportXlsx,pdf:()=>exportPdf()};

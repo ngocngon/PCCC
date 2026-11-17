@@ -1,0 +1,119 @@
+# Audit PCCC – Ghi chú thiết kế và các quy tắc đã chốt
+
+Phần A là quy tắc nghiệp vụ, không tự ý đổi. Phần B trở đi mô tả kỹ thuật.
+
+---
+
+## A. Quy tắc đã chốt với người dùng
+
+### A1. Mục đích
+
+- Soát ảnh hiện trường về **an toàn phòng cháy chữa cháy** theo checklist 25 hạng mục, 100 điểm (5 nhóm: Công việc có lửa 20, Trong trần nhà 10, Thiết bị điện 20, Vật liệu dễ cháy và nguy hiểm 20, Phòng cháy chữa cháy và ứng phó ngăn chặn lan rộng 30).
+- AI chọn lỗi, khoanh vùng, ghi chi tiết lỗi và gán vào đúng hạng mục; người đánh giá xác nhận.
+- Giữ nguyên khung của Audit RBA: dùng trên điện thoại (PWA) và máy tính, quy trình Ảnh → Kiểm tra vi phạm → Xác nhận lỗi → Báo cáo, lưu online, phân quyền 3 cấp.
+
+### A2. Phạm vi lỗi
+
+- Chỉ ghi lỗi **liên quan phòng cháy chữa cháy** thuộc 25 hạng mục.
+- Lỗi không thuộc phòng cháy chỉ ghi khi **nguy hiểm, có nguy cơ lớn về EHS** (có thể gây chết người, chấn thương nặng, sự cố lớn). Mã `EH000`, hiển thị "EHS khác".
+- Lỗi EHS thông thường (5S, vệ sinh, nhãn mác, PPE thông thường) không ghi.
+
+### A3. Chấm điểm
+
+- Hạng mục có **bất kỳ lỗi đã xác nhận nào** thì NG, **0 điểm**. Không có điểm một phần.
+- **Một hạng mục có thể có nhiều lỗi; phải liệt kê hết** kèm ảnh để đơn vị ứng phó.
+- Lỗi `EH000`: **ghi riêng, không trừ điểm**, chỉ có trong PDF, không vào file Excel.
+- Hạng mục không có lỗi từ ảnh: người đánh giá **bắt buộc chấm** OK hoặc NG. NG chấm tay phải có nội dung vấn đề (dùng cho lỗi hồ sơ, phỏng vấn, không có ảnh).
+- Có nút "Chấm OK cho các hạng mục chưa có lỗi" (bấm 2 lần); hạng mục còn lỗi AI chờ xác nhận không bị chấm OK.
+- Xếp hạng theo công thức của file mẫu: A ≥ 90, B 80–89, C 70–79, D < 70.
+- Mức độ Priority/Major/Minor chỉ để xếp ưu tiên khắc phục, **không ảnh hưởng điểm**.
+
+### A4. File checklist (.xlsx) là mẫu cố định
+
+- Mẫu trống tạo từ file ví dụ người dùng gửi (`5-mau-checklist-pccc/mau-checklist-pccc.xlsx`). **Không đổi** hạng mục, phân loại, điểm tiêu chuẩn, thang xếp hạng, công thức, bề rộng cột, ô gộp, danh sách chọn OK/NG, khổ in.
+- App chỉ điền:
+  - D2 tên công ty, D3 người kiểm tra, D4 ngày kiểm tra, D5 phân loại;
+  - cột F (Điểm đánh giá): điểm tiêu chuẩn nếu OK, 0 nếu NG;
+  - cột G (Kết quả): OK hoặc NG;
+  - cột H (Nội dung vấn đề nếu NG): tiếng Việt ở trên, bản dịch (mặc định tiếng Hàn) ở dưới; dạng "Khu vực: nội dung"; nhiều lỗi thì đánh số 1, 2, 3…;
+  - cột I (Hình ảnh vấn đề): ảnh 4:3 có khoanh vùng; số trên ảnh trùng số trong cột H; nhiều ảnh xếp lưới 2 hoặc 3 cột.
+- Dòng NG tô vàng ô F, G, H như file ví dụ. Chiều cao dòng NG tự tăng cho vừa chữ và ảnh (tối đa 409 pt là giới hạn của Excel); chữ tự thu nhỏ 18 → 14 → 11 pt khi nội dung dài.
+- Giá trị lưu sẵn của ô tổng điểm (F33) và ô xếp hạng (I2) được ghi đúng để xem trước trên điện thoại vẫn thấy đúng điểm; công thức giữ nguyên.
+- Nền vàng ở cột D, E của file ví dụ là đánh dấu của lần kiểm tra cũ nên mẫu trống đã bỏ.
+
+### A5. PDF báo cáo nhanh
+
+Khổ 16:9 như PDF trình chiếu của Audit RBA, song ngữ theo cài đặt:
+
+1. **Bìa**: công ty, ngày, người kiểm tra, phân loại, **điểm và hạng**, số hạng mục NG, số lỗi, số ảnh, số lỗi EHS khác.
+2. **Bảng điểm 25 hạng mục**: điểm chuẩn, điểm đạt, OK/NG.
+3. **Nội dung NG theo hạng mục** (tự chia trang).
+4. **Mỗi ảnh một trang**: ảnh có khoanh vùng, từng lỗi gắn nhãn "Hạng mục n" (đỏ) hoặc "EHS khác" (tím).
+
+### A6. Điều kiện xuất
+
+Chỉ xuất khi: đã nhập tên công ty; AI soát xong; mọi lỗi đã xác nhận hoặc xóa; **đã chấm đủ 25 hạng mục**. Thiếu tên người kiểm tra hoặc còn ảnh chưa soát chỉ là cảnh báo. Không có lỗi nào vẫn xuất được (100 điểm).
+
+### A7. Giữ nguyên từ Audit RBA
+
+AI chỉ đề xuất; chỉ nêu điều nhìn thấy; mỗi vi phạm ghi một lần; gộp lỗi trùng; gom lỗi lặp lại ở nhiều ảnh; ngưỡng chắc chắn 60%; sửa tại chỗ ở màn Xác nhận lỗi; sổ kinh nghiệm; thư viện lỗi tự thêm khi xuất; tài liệu tham chiếu; Xuất/Nhập gói; key Gemini riêng từng người; ảnh báo cáo và file nén ảnh.
+
+Đã ẩn vì gắn với RBA: nạp file Guider, file đối chiếu 41 mã, báo cáo Word, nạp file Findings cũ.
+
+---
+
+## B. Kỹ thuật
+
+### B1. Cách dựng
+
+`build.py` chạy lần lượt: `pccc/nap_danh_muc.py` (nạp danh mục và mẫu vào dòng `const RBA=`) → `patch_pwa.py` → `pwa_assets.py` → `patch_cloud.py` → `patch_ai.py` → `pccc/patch_pccc.py` → kiểm tra cú pháp JS → ghi `docs/`.
+
+### B2. Ánh xạ dữ liệu (dùng lại khung của Audit RBA)
+
+| Trong mã | Ý nghĩa ở bản PCCC |
+|---|---|
+| `RBA.codes` | 25 hạng mục `HM001`…`HM025` và `EH000`; mỗi mục có `no`, `row` (dòng trong Excel), `pts`, `vi`, `ko`, `g` (phân loại), `doc` (chủ yếu hồ sơ) |
+| `RBA.order` | Thứ tự 25 mã hạng mục |
+| `RBA.rules` | Lỗi mẫu; `c` là mã hạng mục, `kw` là nhóm từ khóa |
+| `RBA.tpl.b64` | File mẫu checklist |
+| `f.code` của một lỗi | Hạng mục của lỗi; `f.req` là nhãn hiển thị "HM n" |
+
+### B3. Lớp PCCC (`pccc/pccc.js`)
+
+| Phần | Hàm |
+|---|---|
+| Trạng thái chấm tay | `PC` (lưu `localStorage` khóa `soat-pccc-ck`; đồng bộ lên máy chủ qua trường `extra` của audit) |
+| Tính điểm | `pcState`, `pcGroups` |
+| Màn chấm điểm, thẻ điểm ở Tổng quan | `pcRender`, bọc `renderHub`, `renderDash` |
+| Điều kiện xuất | `exportReady`, `gateExport` |
+| Gom lỗi theo hạng mục, đánh số | `pcCollect`, `pcItemText` |
+| Xuất Excel | `pcExportXlsx` (thay `exportFindings`), `pcStyle`, `pcImgLayout`, `pcSetCell` |
+| PDF | `pcCover`, `pcBoard`, `pcNgBlocks`, `pcNgCanvas`, `pcSlide`, `exportPdf` |
+
+### B4. Máy chủ
+
+Giống Audit RBA, thêm cột `audits.extra` (JSON, tối đa 60 KB) chứa bảng chấm tay. `POST /api/audits` và `PATCH /api/audits/:id` nhận `extra`; mọi lệnh trả audit đều kèm `extra`. Khóa audit hoặc đổi người tạo không làm mất `extra`.
+
+### B5. Lưu trữ
+
+Tiền tố `soat-pccc` cho IndexedDB và localStorage, nên chạy chung trình duyệt với Audit RBA không đè dữ liệu nhau. Gói hiện trường (`manifest.json`, `app: soat-anh-pccc`) có thêm `ck` là bảng chấm tay.
+
+---
+
+## C. Giới hạn đã biết
+
+- **Chưa thử với Gemini thật.** Mọi kiểm thử dùng AI giả lập. Lần dùng thật đầu tiên nên đọc kỹ vài ảnh đầu: AI gán hạng mục có đúng không, câu tiếng Hàn có đúng văn phong không; chỉnh `BASE`, `AIX_RULES`, `TRP` nếu cần.
+- **Căn cứ pháp lý** lấy lại từ dữ liệu của Audit RBA, chỉ để tra cứu trong app, không in ra file. Cần đối chiếu văn bản gốc trước khi trích dẫn.
+- **Hạng mục hồ sơ** (1, 2, 8, 24, 25): AI chỉ kết luận được khi ảnh chụp chính tài liệu và đọc được chữ; còn lại người đánh giá chấm tay.
+- **Một dòng Excel cao tối đa 409 pt.** Hạng mục có rất nhiều lỗi (trên khoảng 8–10 lỗi dài) có thể bị tràn chữ; khi đó xem đủ nội dung trong PDF.
+- **Hai người cùng chấm tay một audit online:** lần lưu sau ghi đè lần trước ở cấp cả bảng chấm (không gộp từng hạng mục).
+- **Font chữ Hàn, Trung** trên PDF và ảnh lấy font có sẵn của máy.
+- Các giới hạn chung của Audit RBA vẫn đúng: ảnh HEIC trên Chrome máy tính, chọn thư mục trên iPhone, mở link trong Zalo/Messenger.
+
+---
+
+## D. Lịch sử phiên bản
+
+| Bản | Nội dung |
+|---|---|
+| **v1.0.0** | Bản đầu, tách từ Audit RBA v1.7.0: danh mục 25 hạng mục và 90 lỗi mẫu PCCC, lời nhắc AI theo checklist, màn chấm điểm OK/NG, xuất checklist .xlsx đúng mẫu, PDF báo cáo nhanh có điểm và hạng, lỗi EHS khác ghi riêng, đồng bộ bảng chấm lên máy chủ |

@@ -1,0 +1,18 @@
+name = "audit-pccc-api"
+main = "src/index.js"
+compatibility_date = "2025-10-01"
+workers_dev = true
+
+[vars]
+ALLOWED_ORIGINS = "https://audit-pccc.pages.dev,https://ngocngon.github.io"   # các địa chỉ được phép gọi máy chủ (trang app)
+
+[[d1_databases]]
+binding = "DB"
+database_name = "audit-pccc"
+database_id = "DIEN-ID-SAU-KHI-TAO-D1"   # chạy: npx wrangler d1 create audit-pccc, rồi dán database_id vào đây
+
+# Bật R2 (sau khi bấm Enable R2 một lần tại https://dash.cloudflare.com → R2):
+# bỏ dấu # ở 3 dòng dưới, chạy `npx wrangler r2 bucket create audit-pccc-images && npx wrangler deploy`
+# [[r2_buckets]]
+# binding = "IMG"
+# bucket_name = "audit-pccc-images"
