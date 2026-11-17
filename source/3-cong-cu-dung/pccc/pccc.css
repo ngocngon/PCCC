@@ -91,3 +91,13 @@ button.pc-qa{font:700 11px/1.1 inherit;background:#FEF3C7;color:#92400E;border:1
 .pc-freq{color:#B45309!important;font-weight:700}
 .pcimg{font:600 12px/1 inherit;padding:6px 8px;border-radius:8px;border:1px solid #CBD5E1;background:#F8FAFC;cursor:pointer;white-space:nowrap}
 .pced .acts{flex-wrap:wrap}
+/* v1.0.6 */
+.pc-kind{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;font-size:13px}
+.pc-kind span{font-weight:700;color:#334155}
+.pc-kind label{display:inline-flex;gap:5px;align-items:center;cursor:pointer}
+.pc-xdel{margin-left:auto;flex:none;min-width:30px;height:30px;border-radius:8px;border:1px solid #FCA5A5;background:#FEF2F2;color:#B91C1C;font-weight:700;cursor:pointer}
+.pc-xdel.is-armed{background:#B91C1C;color:#fff;padding:0 8px}
+.pcf.ev{background:#F0FDF4}
+.pc-evt{font:700 11px/1 inherit;font-style:normal;color:#fff;background:#15803D;border-radius:6px;padding:3px 6px;white-space:nowrap}
+.pced .pc-kind label{display:inline-flex!important;flex-direction:row!important;align-items:center;gap:6px;width:auto!important;font-size:13px;line-height:1.3}
+.pced .pc-kind input[type=radio]{width:18px!important;height:18px!important;min-height:0!important;flex:none;margin:0;padding:0}

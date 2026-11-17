@@ -57,6 +57,14 @@ Phần A là quy tắc nghiệp vụ, không tự ý đổi. Phần B trở đi 
 - **Tự học**: lời nhắc AI có thêm phần "HỌC TỪ CÁC LẦN KIỂM TRA TRƯỚC": hạng mục hay vi phạm và cách ghi lỗi đã xác nhận (thư viện lỗi + đợt hiện tại), phán định bị loại, các lần gán nhầm hạng mục. Lời nhắc cấm lỗi mơ hồ ("có thể", "nghi ngờ"…). Lỗi AI viết mơ hồ hoặc giống phán định đã bị loại bị hạ độ chắc chắn (≤55%/50%, dưới ngưỡng 60% thì chuyển sang mục cần kiểm tra thêm) và gắn nhãn "Mơ hồ"/"Từng bị loại". Màn chấm điểm hiện "Hay vi phạm: n/N lần audit".
 - **PDF**: trang ảnh xếp đúng thứ tự hạng mục 1 → 25, mỗi trang một ảnh của một hạng mục (ảnh liên quan 2 hạng mục có 2 trang, không gộp), cuối cùng là lỗi EHS khác.
 
+### A3f. Bản v1.0.6: chèn ảnh xác nhận/ảnh lỗi, xóa nhanh, ảnh và hàng Excel cố định
+
+- Màn chấm điểm: nút **📷 Chèn ảnh** ở mỗi hạng mục, chọn loại ảnh: **Ảnh xác nhận đạt** (hạng mục OK, ví dụ ảnh hồ sơ; nội dung không bắt buộc; không trừ điểm; hạng mục chưa có lỗi được tự chấm OK) hoặc **Ảnh lỗi** (cần nội dung; hạng mục 0 điểm). Mỗi ảnh chèn tay có nút × (bấm 2 lần) để xóa nếu chọn nhầm; với lỗi trên ảnh hiện trường, × chỉ xóa lỗi đó.
+- Ảnh trong báo cáo (Excel và PDF) phủ kín khung 4:3, không còn viền tối hay nền mờ; ảnh chèn tay không vẽ khung khoanh quanh cả ảnh.
+- Excel: mọi ảnh cùng một kích thước 184×138 px, đặt trong ô cột I, 2 ảnh mỗi dòng, căn giữa. Cả 25 hàng hạng mục cùng chiều cao 160,5 pt (kể cả hàng OK). Chữ tự giảm cỡ 18 → 14 → 11 để vừa hàng; chỉ khi chữ vẫn không vừa hoặc hạng mục có từ 3 ảnh trở lên thì hàng đó mới cao hơn (ngoại lệ, tối đa 409 pt, tối đa 8 ảnh, ảnh cuối ghi +n). Ảnh xác nhận có nhãn ĐẠT.
+- PDF: ảnh xác nhận đạt có trang riêng ở đúng vị trí hạng mục, nhãn xanh "Hạng mục n · Đạt".
+- Lựa chọn hạng mục của ảnh, ảnh xác nhận và ghi chú được lưu trong p.analysis.pc nên còn sau khi tải lại và được đồng bộ máy chủ.
+
 ### A4. File checklist (.xlsx) là mẫu cố định
 
 - Mẫu trống tạo từ file ví dụ người dùng gửi (`5-mau-checklist-pccc/mau-checklist-pccc.xlsx`). **Không đổi** hạng mục, phân loại, điểm tiêu chuẩn, thang xếp hạng, công thức, bề rộng cột, ô gộp, danh sách chọn OK/NG, khổ in.
@@ -145,6 +153,7 @@ Tiền tố `soat-pccc` cho IndexedDB và localStorage, nên chạy chung trình
 
 | Bản | Nội dung |
 |---|---|
+| **v1.0.6** | Nút Chèn ảnh (ảnh xác nhận đạt hoặc ảnh lỗi) ở màn chấm điểm, xóa nhanh ảnh chèn nhầm; ảnh báo cáo phủ kín khung, cùng một kích thước; 25 hàng Excel cùng chiều cao, chỉ hàng quá nhiều chữ/ảnh mới cao hơn |
 | **v1.0.5** | Chọn một hoặc nhiều hạng mục cho ảnh/lỗi liên quan nhiều hạng mục; mọi danh sách xếp theo hạng mục 1 → 25; nút xóa nhanh; chèn ảnh bổ sung ở màn chấm điểm; tự học lỗi hay gặp, chặn lỗi mơ hồ; PDF xếp ảnh theo hạng mục, không gộp |
 | **v1.0.4** | Nút chọn hạng mục ngay trên từng dòng lỗi (bảng và thẻ điện thoại); AI phán định theo yêu cầu của 25 hạng mục checklist (trường "item" bắt buộc), bỏ nhóm danh mục RBA |
 | **v1.0.3** | Ảnh trong file Excel cùng khung, cùng kích thước |

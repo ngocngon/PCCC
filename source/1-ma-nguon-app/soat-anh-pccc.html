@@ -2095,7 +2095,7 @@ function renderAllList(){
           S.fsel?null:h('div',{class:'ar-a'},h('span',{class:'st-pill '+(f.ok?'ok':'pend')},f.ok?'✓ Đã xác nhận':'⏳ Chờ xác nhận'),
             h('button',{class:'btn sm'+(S.ied===f.id?' is-open':''),onclick:()=>iToggle(f)},S.ied===f.id?'Đang sửa ▴':'Sửa'),
             f.ok?h('button',{class:'btn sm btn-unok',onclick:()=>toggleOk(p,f)},'↺ Bỏ xác nhận'):h('button',{class:'btn sm btn-cfm',onclick:()=>toggleOk(p,f)},'Xác nhận'),pcDelBtn(p,f)),S.ied===f.id&&!S.fsel?iEditor(p,f,n):null)}):
-        h('p',{class:'anone2'},p.bgRun?'AI đang soát ảnh này…':p.analysis?'AI không thấy lỗi trong ảnh này.':'Ảnh chưa được soát.'),
+        h('p',{class:'anone2'},p.bgRun?'AI đang soát ảnh này…':p.analysis&&p.analysis.manual?`Ảnh xác nhận đạt${p.pcEvid&&RBA.codes[p.pcEvid]?' cho hạng mục '+RBA.codes[p.pcEvid].no:''} (chèn ở màn chấm điểm)${p.pcNote?': '+p.pcNote:''}.`:p.analysis?'AI không thấy lỗi trong ảnh này.':'Ảnh chưa được soát.'),
       p.sample||p.bgRun||S.fsel?null:h('div',{class:'agfoot'},hintAdd(p))));
   });
   if(tot&&!shownAny)L.append(h('div',{class:'tflt-empty'},h('b',null,'Không có lỗi nào khớp bộ lọc đang chọn'),h('button',{type:'button',class:'btn primary',onclick:()=>{resetLF();renderList()}},`Hiện toàn bộ ${tot} lỗi`)));
@@ -2241,7 +2241,7 @@ function drawUniform43(g,im,p,items,fx,fy,FW,FH,mo){
   const rx0=Math.max(0,ux0-padX),ry0=Math.max(0,uy0-padY),rx1=Math.min(p.w,ux1+padX),ry1=Math.min(p.h,uy1+padY);
   const needW=rx1-rx0,needH=ry1-ry0,maxCw=p.w/p.h>A?p.h*A:p.w,maxCh=maxCw/A,minFrac=mo&&mo.minFrac?mo.minFrac:.78;
   g.imageSmoothingQuality='high';
-  if(needW<=maxCw*1.02&&needH<=maxCh*1.02){
+  if((mo&&mo.cover)||(needW<=maxCw*1.02&&needH<=maxCh*1.02)){
     const cw=clamp(Math.max(needW,needH*A,maxCw*minFrac),Math.min(maxCw,120),maxCw),ch=cw/A;
     const midX=bs.length?(rx0+rx1)/2:p.w/2,midY=bs.length?(ry0+ry1)/2:p.h/2;
     let cx=clamp(midX-cw/2,0,Math.max(0,p.w-cw)),cy=clamp(midY-ch/2,0,Math.max(0,p.h-ch));
