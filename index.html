@@ -12,7 +12,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Audit PCCC">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Audit PCCC v1.0.0</title>
+<title>Audit PCCC v1.0.1</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap">
 <style>
 /* Bàn soát ảnh EHS: ảnh hiện trường trên nền tối, biển báo an toàn làm ngôn ngữ thị giác (số hiệu bát giác / thoi / tròn theo mức độ).
@@ -1137,7 +1137,7 @@ details.cg>summary small{font-size:12px;color:var(--muted,#5b6670);font-weight:6
 
 <div id="app" data-view="review">
   <header class="top">
-    <img class="applogo" src="icon-192.png" alt="" width="34" height="34"><div class="brand"><b>Audit PCCC<small class="ver">v1.0.0</small></b><span id="brandSub">Checklist PCCC · 25 hạng mục · 100 điểm</span></div>
+    <img class="applogo" src="icon-192.png" alt="" width="34" height="34"><div class="brand"><b>Audit PCCC<small class="ver">v1.0.1</small></b><span id="brandSub">Checklist PCCC · 25 hạng mục · 100 điểm</span></div>
     <button class="chip empty" id="chip" title="Thông tin audit, báo cáo và dữ liệu"><b id="chipU">Nhập thông tin audit</b><small id="chipD"></small></button>
     <span class="net" id="net" hidden><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 8.5a15 15 0 0120 0M5.5 12a10 10 0 0113 0M9 15.5a5 5 0 016 0"/><path d="M3 3l18 18"/></svg>Mất mạng</span>
     <span class="spacer"></span>
@@ -1605,7 +1605,7 @@ function pickWatch(){
 }
 const isZipF=f=>/\.zip$/i.test(f.name)||/zip/.test(f.type||''),isImgF=f=>(f.type||'').startsWith('image/')||/\.(jpe?g|png|webp|heic|heif)$/i.test(f.name);
 /* ---------- Bản cài trên điện thoại: cài app, chạy khi mất mạng, cài đặt AI ---------- */
-const APP_VER='1.0.0';
+const APP_VER='1.0.1';
 const IOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
 const STANDALONE=()=>!!(navigator.standalone||(window.matchMedia&&matchMedia('(display-mode: standalone)').matches));
 function offerSave(f){
@@ -4303,7 +4303,7 @@ addEventListener('keydown',e=>{if(e.key==='Escape'&&$('app').classList.contains(
 /* ---------- Online: đăng nhập, lưu trữ theo phân vùng, phân quyền, quản trị ---------- */
 /* Phân vùng: Đối tác → Lần audit (ngày) → Khu vực → Ảnh / Lỗi. Máy vẫn lưu tạm như cũ (chạy khi mất mạng), có mạng thì tự đồng bộ.
    Quyền: admin (toàn quyền), auditor (sửa audit mình tạo hoặc được giao), viewer (chỉ xem). Máy chủ kiểm tra quyền ở mọi thao tác. */
-const API=''.replace(/\/$/,'');
+const API='https://audit-pccc-api.likiop00.workers.dev'.replace(/\/$/,'');
 const ROLE_L={admin:'Quản trị viên',auditor:'Auditor',viewer:'Người xem'};
 const ROLE_D={admin:'Toàn quyền: quản lý người dùng, phân quyền, cài đặt hệ thống, sửa và xóa mọi audit.',auditor:'Tạo audit mới; chỉ sửa audit do mình tạo hoặc được quản trị viên giao. Xem được mọi audit.',viewer:'Chỉ xem và tải báo cáo, không sửa được dữ liệu online.'};
 const CL={auth:null,sys:{},users:[],audit:null,q:{data:new Set(),img:new Set(),del:new Set()},mute:0,busy:false,t:0,lastPull:0,err:'',metaDirty:false,booted:false,lsRemoved:new Set(),kho:{q:'',year:'',st:'',view:'recent',mine:false,arFlt:'',ltFlt:'',open:new Set(),exp:null,photos:new Map(),list:null,res:null},adm:{tab:'users',log:null,stats:null}};
