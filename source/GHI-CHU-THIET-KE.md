@@ -65,6 +65,14 @@ Phần A là quy tắc nghiệp vụ, không tự ý đổi. Phần B trở đi 
 - PDF: ảnh xác nhận đạt có trang riêng ở đúng vị trí hạng mục, nhãn xanh "Hạng mục n · Đạt".
 - Lựa chọn hạng mục của ảnh, ảnh xác nhận và ghi chú được lưu trong p.analysis.pc nên còn sau khi tải lại và được đồng bộ máy chủ.
 
+### A3g. Bản v1.0.7: sửa nhãn "Đạt" sai trong PDF, bố cục Excel chuẩn
+
+- PDF: trước đây trang lỗi bị gắn nhãn xanh "Hạng mục n · Đạt" vì cờ ảnh xác nhận trùng tên trường `ev` (mô tả bằng chứng) của mọi lỗi. Nay dùng cờ riêng `pcEvidence`. Quy tắc nhãn: lỗi trong 25 hạng mục → nhãn đỏ "Hạng mục n", dòng phụ "tên · 0/điểm"; ảnh xác nhận đạt → nhãn xanh "Hạng mục n · Đạt", dòng phụ "điểm/điểm"; lỗi EHS khác → nhãn tím.
+- Excel: mẫu gốc ghi `customHeight="160.5"` (không hợp lệ) nên Excel trên điện thoại tự co giãn hàng → hàng to hàng nhỏ, chữ bị khuất. Nay mọi hàng ghi `customHeight="1"`.
+- Được phép đổi tỷ lệ hàng/cột (theo yêu cầu người dùng): cột H (nội dung NG) 58,3 → 72, cột I (hình ảnh) 53,6 → 66; 25 hàng hạng mục cùng cao 150 pt; in vừa 1 trang theo chiều ngang (fitToWidth=1). Các cột, ô, công thức, kiểu chữ khác giữ nguyên.
+- Ảnh Excel 220×165 px, 2 ảnh mỗi dòng trong ô. Cỡ chữ nội dung NG tự chọn 18 → 14 → 11 theo chiều cao hàng thực tế; chỉ hàng có chữ quá dài hoặc từ 3 ảnh trở lên mới cao hơn.
+- Kịch bản kiểm tra mẫu chấp nhận đổi độ rộng cột H, I và cách in; kiểm tra thêm 25 hàng phải có customHeight="1".
+
 ### A4. File checklist (.xlsx) là mẫu cố định
 
 - Mẫu trống tạo từ file ví dụ người dùng gửi (`5-mau-checklist-pccc/mau-checklist-pccc.xlsx`). **Không đổi** hạng mục, phân loại, điểm tiêu chuẩn, thang xếp hạng, công thức, bề rộng cột, ô gộp, danh sách chọn OK/NG, khổ in.
@@ -153,6 +161,7 @@ Tiền tố `soat-pccc` cho IndexedDB và localStorage, nên chạy chung trình
 
 | Bản | Nội dung |
 |---|---|
+| **v1.0.7** | Sửa nhãn "Đạt" xanh sai trên trang lỗi trong PDF; Excel: hàng cố định không tự co giãn, cột nội dung và hình ảnh rộng hơn, cùng chiều cao hàng, in vừa trang ngang |
 | **v1.0.6** | Nút Chèn ảnh (ảnh xác nhận đạt hoặc ảnh lỗi) ở màn chấm điểm, xóa nhanh ảnh chèn nhầm; ảnh báo cáo phủ kín khung, cùng một kích thước; 25 hàng Excel cùng chiều cao, chỉ hàng quá nhiều chữ/ảnh mới cao hơn |
 | **v1.0.5** | Chọn một hoặc nhiều hạng mục cho ảnh/lỗi liên quan nhiều hạng mục; mọi danh sách xếp theo hạng mục 1 → 25; nút xóa nhanh; chèn ảnh bổ sung ở màn chấm điểm; tự học lỗi hay gặp, chặn lỗi mơ hồ; PDF xếp ảnh theo hạng mục, không gộp |
 | **v1.0.4** | Nút chọn hạng mục ngay trên từng dòng lỗi (bảng và thẻ điện thoại); AI phán định theo yêu cầu của 25 hạng mục checklist (trường "item" bắt buộc), bỏ nhóm danh mục RBA |

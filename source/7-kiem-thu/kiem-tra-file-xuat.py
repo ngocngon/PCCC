@@ -22,7 +22,16 @@ for ref in a:
     fixed = col in 'BCEK' or (col == 'D' and row >= 7) or row in (7,) or (col in 'EFGH' and row <= 5) or (row == 33 and col != 'F')
     if fixed and a[ref] != b[ref]: bad.append(f'{ref} đổi: {a[ref]} -> {b[ref]}')
     if a[ref][1] != b[ref][1]: bad.append(f'{ref} đổi công thức')
-for k in ('<cols>', '<mergeCells', '<dataValidations', '<pageSetup', '<rowBreaks'):
+# v1.0.7: chỉ cho phép đổi độ rộng cột H, I (nội dung, hình ảnh) và cách in vừa trang; các cột khác giữ nguyên
+colsA = re.findall(r'<col [^>]*/>', sa); colsB = re.findall(r'<col [^>]*/>', sb)
+strip = lambda c: re.sub(r'width="[\d.]+"', '', c) if re.search(r'min="(8|9)"', c) else c
+if [strip(c) for c in colsA] != [strip(c) for c in colsB]: bad.append('cột đổi ngoài H, I')
+ps = re.search(r'<pageSetup[^>]*>', sb)
+if not ps or 'landscape' not in ps.group(0) or 'paperSize="9"' not in ps.group(0): bad.append('khổ in đổi')
+for r in range(8, 33):
+    m = re.search(rf'<row r="{r}"[^>]*>', sb).group(0)
+    if 'customHeight="1"' not in m: bad.append(f'dòng {r}: thiếu customHeight="1"')
+for k in ('<mergeCells', '<dataValidations', '<rowBreaks'):
     x = lambda s: re.search(re.escape(k) + r'.*?(?:/>|</' + k[1:].split(' ')[0].rstrip('>') + '>)', s, flags=re.S)
     if x(sa) and x(sa).group(0) != (x(sb).group(0) if x(sb) else None): bad.append(f'{k} đổi')
 if za.read('xl/styles.xml') != zb.read('xl/styles.xml'): bad.append('styles.xml đổi')

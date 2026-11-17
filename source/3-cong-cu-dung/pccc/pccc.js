@@ -253,14 +253,15 @@ function pcItemText(r,L){
 }
 
 /* ---------- Xuất checklist (.xlsx): điền vào mẫu cố định ---------- */
-const PCX={colPx:380,textPx:398,emu:9525,gap:6};
-function pcTextPt(text,pt){const px=pt*4/3;let lines=0;for(const l of String(text).split('\n')){let w=0;for(const ch of l)w+=/[ᄀ-ᇿ⺀-鿿가-힣＀-￯]/.test(ch)?px:px*.56;lines+=Math.max(1,Math.ceil(w*1.1/PCX.textPx))}return lines*pt*1.24+10}
+/* Bố cục Excel v1.0.7: cột H (nội dung) 72, cột I (hình ảnh) 66; 25 hàng hạng mục cùng cao 150 pt; in vừa 1 trang ngang */
+const PCX={colH:72,colI:66,emu:9525,gap:6};PCX.colPx=Math.floor(PCX.colI*7+5);PCX.textPx=Math.floor(PCX.colH*7+5)-14;
+function pcTextPt(text,pt){const px=pt*4/3;let lines=0;for(const l of String(text).split('\n')){let w=0;for(const ch of l)w+=/[ᄀ-ᇿ⺀-鿿가-힣＀-￯]/.test(ch)?px*1.02:/[A-ZĐ0-9]/.test(ch)?px*.66:ch===' '?px*.28:px*.56;lines+=Math.max(1,Math.ceil(w*1.12/PCX.textPx))}return lines*pt*1.32+14}
 /* Hàng hạng mục: cùng một chiều cao cố định. Chữ: giảm cỡ (18 → 14 → 11) để vừa hàng; chỉ khi vẫn không vừa mới kéo hàng cao hơn (ngoại lệ) */
-const PC_ROWPT=160.5;
-function pcStyle(text,k){const left=k>1;let last;for(const[pt,c,l]of[[18,15,21],[14,22,23],[11,24,25]]){const hpt=pcTextPt(text,pt);last={s:left?l:c,pt:hpt};if(hpt<=PC_ROWPT)return last}return last}
+const PC_ROWPT=150;
+function pcStyle(text,k,maxPt){const left=k>1,lim=maxPt||PC_ROWPT;let last;for(const[pt,c,l]of[[18,15,21],[14,22,23],[11,24,25]]){const hpt=pcTextPt(text,pt);last={s:left?l:c,pt:hpt};if(hpt<=lim)return last}return last}
 /* Ảnh trong Excel: mọi ảnh cùng MỘT kích thước 4:3, phủ kín khung (không viền đen), đặt trong ô cột I, 2 ảnh mỗi dòng.
    Hàng chuẩn chứa được 2 ảnh; hạng mục có 3 ảnh trở lên thì hàng cao thêm (ngoại lệ). */
-const PCI={w:184,h:138,gap:4,pad:7,scale:4,perLine:2,max:8};
+const PCI={w:220,h:165,gap:6,pad:10,scale:4,perLine:2,max:8};
 function pcDraw(g,im,p,items,x,y,w,h,mo){drawUniform43(g,im,p,(items||[]).filter(x=>x&&x.f&&x.f.s&&!x.f.whole),x,y,w,h,{...(mo||{}),cover:true})}
 async function pcTile(pic,more){
   const W=PCI.w*PCI.scale,H=PCI.h*PCI.scale,c=mk(W,H),g=c.getContext('2d');await fonts();
@@ -273,6 +274,14 @@ async function pcTile(pic,more){
 function pcTileLayout(n){const m=Math.min(n,PCI.max),lines=Math.ceil(m/PCI.perLine),bh=lines*PCI.h+(lines-1)*PCI.gap;return{m,lines,bh,needPx:bh+2*PCI.pad}}
 const pcCell=(ref,s,v)=>typeof v==='number'?`<c r="${ref}" s="${s}"><v>${v}</v></c>`:v?`<c r="${ref}" s="${s}" t="inlineStr"><is><t xml:space="preserve">${esc(v)}</t></is></c>`:`<c r="${ref}" s="${s}"/>`;
 function pcSetCell(body,ref,xml){const rx=new RegExp(`<c r="${ref}"(?: [^>/]*)?(?:/>|>[\\s\\S]*?</c>)`);if(!rx.test(body))throw new Error('Mẫu thiếu ô '+ref);return body.replace(rx,()=>xml)}
+/* Chuẩn hóa bố cục trang: customHeight hợp lệ (để Excel không tự co giãn hàng), độ rộng cột H/I, in vừa chiều ngang */
+function pcSheetLayout(sh){
+  sh=sh.replace(/customHeight="[^"]*"/g,'customHeight="1"');
+  sh=sh.replace(/<col min="8" max="8" width="[\d.]+"/,`<col min="8" max="8" width="${PCX.colH}"`).replace(/<col min="9" max="9" width="[\d.]+"/,`<col min="9" max="9" width="${PCX.colI}"`);
+  sh=sh.replace(/<sheetPr\/>/,'<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>').replace(/<sheetPr>(?![\s\S]*?pageSetUpPr)/,'<sheetPr><pageSetUpPr fitToPage="1"/>');
+  sh=sh.replace(/<pageSetup ([^>]*?)\/>/,(m,a)=>`<pageSetup ${a.replace(/\s*scale="\d+"/,'').replace(/\s*fitTo(Width|Height)="\d+"/g,'')} fitToWidth="1" fitToHeight="0"/>`);
+  return sh;
+}
 let pcBusy=false;
 async function pcExportXlsx(){
   if(pcBusy)return;if(!gateExport())return;
@@ -284,6 +293,7 @@ async function pcExportXlsx(){
     if(L){busy(cur(),`Đang dịch nội dung sang ${CAPN[L]}…`);try{miss=await lxEnsure(L,pcTexts(col),t=>busy(cur(),t))}catch(e){console.warn(e)}finally{busy(null)}}
     const z=await JSZip.loadAsync(RBA.tpl.b64,{base64:true}),put=(k,v)=>z.file(k,v,{createFolders:false});
     let sh=await z.file('xl/worksheets/sheet1.xml').async('string');
+    sh=pcSheetLayout(sh);
     const date=$('mDate').value||today(),head={2:$('mUnit').value.trim(),3:$('mWho').value.trim(),4:vnDate(date),5:$('mSub').value.trim()};
     let pics='',rels='',no=0;const score=col.rows.reduce((s,r)=>s+(r.st==='NG'?0:r.v.pts),0),grade=PC_GRADE(score);
     const byRow=new Map(col.rows.map(r=>[r.v.row,r]));
@@ -295,9 +305,10 @@ async function pcExportXlsx(){
       const it=byRow.get(r);
       if(it){
         const allPics=it.pics,TL=pcTileLayout(allPics.length);let pt=PC_ROWPT,sty=null,text='';
-        if(it.st==='NG'){text=pcItemText(it,L);sty=pcStyle(text,it.ent.length);pt=Math.max(pt,sty.pt)}
-        if(allPics.length)pt=Math.max(pt,TL.needPx*.75);pt=Math.min(409,pt);
-        attrs=/ht="/.test(attrs)?attrs.replace(/ht="[\d.]+"/,`ht="${pt.toFixed(1)}"`):attrs+` ht="${pt.toFixed(1)}" customHeight="1"`;
+        if(allPics.length)pt=Math.max(pt,TL.needPx*.75);
+        if(it.st==='NG'){text=pcItemText(it,L);sty=pcStyle(text,it.ent.length,pt);pt=Math.max(pt,sty.pt)}
+        pt=Math.min(409,pt);
+        attrs=(/ht="/.test(attrs)?attrs.replace(/ht="[\d.]+"/,`ht="${pt.toFixed(1)}"`):attrs+` ht="${pt.toFixed(1)}"`);if(!/customHeight=/.test(attrs))attrs+=' customHeight="1"';
         if(it.st==='NG'){body=pcSetCell(body,'F'+r,pcCell('F'+r,15,0));body=pcSetCell(body,'G'+r,pcCell('G'+r,15,'NG'));body=pcSetCell(body,'H'+r,pcCell('H'+r,sty.s,text))}
         else{body=pcSetCell(body,'F'+r,pcCell('F'+r,8,it.v.pts));body=pcSetCell(body,'G'+r,pcCell('G'+r,8,'OK'))}
         if(allPics.length){const rowPx=pt/.75,y0=Math.max(2,Math.round((rowPx-TL.bh)/2));
@@ -420,7 +431,7 @@ async function pcSlide(p,items,idx,L,page,total,only){
   let y=top+Math.max(0,(bh-F.tot)/2);
   F.bl.forEach((b,i)=>{let ty=y;const code=only||pcCodeOf(b.f,p),v=RBA.codes[code],eh=code==='EH000';
     if(single){g.fillStyle=cols[b.f.id][0];rrect(g,x0,ty+4,8,Math.max(24,b.hh-8),4);g.fill()}else badge(g,b.n,'',x0+26,ty+F.ch+F.lh*.5,clamp(F.z*.6,14,23),cols[b.f.id]);
-    const okEv=!!b.f.ev,cw=pcChip(g,tx,ty,okEv?`${PCL.vi.item} ${v.no} · Đạt`:eh?pcLab('ehsShort',L).split(' / ')[L==='vi'?0:1]||PCL.vi.ehsShort:`${PCL.vi.item} ${v.no}`,okEv?'#15803D':eh?'#7C3AED':'#B91C1C',FB,F.cs);
+    const okEv=b.f.pcEvidence===true,cw=pcChip(g,tx,ty,okEv?`${PCL.vi.item} ${v.no} · Đạt`:eh?pcLab('ehsShort',L).split(' / ')[L==='vi'?0:1]||PCL.vi.ehsShort:`${PCL.vi.item} ${v.no}`,okEv?'#15803D':eh?'#7C3AED':'#B91C1C',FB,F.cs);
     g.fillStyle='#55626A';g.font=`500 ${F.cs}px ${FB}`;g.fillText(trunc(g,eh?PCL.vi.ehs:okEv?`${v.t} · ${v.pts}/${v.pts}`:`${v.t} · 0/${v.pts}`,tw-cw-14),tx+cw+12,ty+F.cs*1.15);ty+=F.ch;
     g.textAlign='left';g.textBaseline='alphabetic';g.fillStyle='#14191C';g.font=`600 ${F.z}px ${FB}`;b.tl.forEach(l=>{g.fillText(l,tx,ty+F.lh*.78);ty+=F.lh});
     if(b.xl.length){ty+=8;g.fillStyle='#1F4E8C';g.font=`500 ${F.xs}px ${FB}`;b.xl.forEach(l=>{g.fillText(l,tx,ty+F.xlh*.78);ty+=F.xlh})}
@@ -439,7 +450,7 @@ exportPdf=async function(){
     if(L!=='vi'){say('Đang dịch nội dung…');try{miss=await lxEnsure(L,pcTexts(col),say)}catch(e){console.warn(e)}}
     await fonts();const FB=fontL(L);
     /* Ảnh xếp đúng thứ tự hạng mục 1 → 25, mỗi trang một ảnh của một hạng mục (không gộp hạng mục), cuối cùng là lỗi EHS khác */
-    const slides=[...col.rows.flatMap(r=>r.pics.map(pc=>({p:pc.p,items:pc.ev?[{f:{id:'ev'+pc.p.id,title:pc.p.pcNote||'Ảnh xác nhận hạng mục đạt yêu cầu',sev:'',ev:true,whole:true,s:{t:'rect',x:0,y:0,w:1,h:1}},n:1}]:pc.items,code:r.c}))),...col.ehs.map(g=>({p:g.p,items:g.items,code:'EH000'}))],ngPages=pcNgPages(pcNgBlocks(col,L,FB));
+    const slides=[...col.rows.flatMap(r=>r.pics.map(pc=>({p:pc.p,items:pc.ev?[{f:{id:'ev'+pc.p.id,title:pc.p.pcNote||'Ảnh xác nhận hạng mục đạt yêu cầu',sev:'',pcEvidence:true,whole:true,s:{t:'rect',x:0,y:0,w:1,h:1}},n:1}]:pc.items,code:r.c}))),...col.ehs.map(g=>({p:g.p,items:g.items,code:'EH000'}))],ngPages=pcNgPages(pcNgBlocks(col,L,FB));
     const N=2+ngPages.length+slides.length,pages=[];let pg=0;
     const push=async(c,q)=>{pages.push({blob:await toBlob(c,'image/jpeg',q||.88),w:c.width,h:c.height});c.width=c.height=0;await new Promise(r=>setTimeout(r,0))};
     say(`Đang tạo PDF ${++pg}/${N}…`);await push(await pcCover(col,L),.9);
