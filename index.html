@@ -4316,7 +4316,7 @@ addEventListener('keydown',e=>{if(e.key==='Escape'&&$('app').classList.contains(
 /* ---------- Online: đăng nhập, lưu trữ theo phân vùng, phân quyền, quản trị ---------- */
 /* Phân vùng: Đối tác → Lần audit (ngày) → Khu vực → Ảnh / Lỗi. Máy vẫn lưu tạm như cũ (chạy khi mất mạng), có mạng thì tự đồng bộ.
    Quyền: admin (toàn quyền), auditor (sửa audit mình tạo hoặc được giao), viewer (chỉ xem). Máy chủ kiểm tra quyền ở mọi thao tác. */
-const API=''.replace(/\/$/,'');
+const API='https://audit-pccc-api.likiop00.workers.dev'.replace(/\/$/,'');
 const ROLE_L={admin:'Quản trị viên',auditor:'Auditor',viewer:'Người xem'};
 const ROLE_D={admin:'Toàn quyền: quản lý người dùng, phân quyền, cài đặt hệ thống, sửa và xóa mọi audit.',auditor:'Tạo audit mới; chỉ sửa audit do mình tạo hoặc được quản trị viên giao. Xem được mọi audit.',viewer:'Chỉ xem và tải báo cáo, không sửa được dữ liệu online.'};
 const CL={auth:null,sys:{},users:[],audit:null,q:{data:new Set(),img:new Set(),del:new Set()},mute:0,busy:false,t:0,lastPull:0,err:'',metaDirty:false,booted:false,lsRemoved:new Set(),kho:{q:'',year:'',st:'',view:'recent',mine:false,arFlt:'',ltFlt:'',open:new Set(),exp:null,photos:new Map(),list:null,res:null},adm:{tab:'users',log:null,stats:null}};
