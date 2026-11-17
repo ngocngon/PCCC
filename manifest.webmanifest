@@ -1,0 +1,31 @@
+{
+ "name": "Audit PCCC",
+ "short_name": "Audit PCCC",
+ "lang": "vi",
+ "description": "Soát ảnh hiện trường theo checklist PCCC 25 hạng mục, khoanh lỗi, chấm điểm và xuất báo cáo.",
+ "start_url": "./",
+ "scope": "./",
+ "id": "./",
+ "display": "standalone",
+ "orientation": "any",
+ "background_color": "#14334B",
+ "theme_color": "#14191C",
+ "icons": [
+  {
+   "src": "icon-192.png",
+   "sizes": "192x192",
+   "type": "image/png"
+  },
+  {
+   "src": "icon-512.png",
+   "sizes": "512x512",
+   "type": "image/png"
+  },
+  {
+   "src": "icon-maskable-512.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "maskable"
+  }
+ ]
+}
