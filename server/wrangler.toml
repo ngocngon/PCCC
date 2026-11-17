@@ -4,12 +4,12 @@ compatibility_date = "2025-10-01"
 workers_dev = true
 
 [vars]
-ALLOWED_ORIGINS = "https://audit-pccc.pages.dev,https://ngocngon.github.io"   # các địa chỉ được phép gọi máy chủ (trang app)
+ALLOWED_ORIGINS = "https://audit-pccc.pages.dev,https://ngocngon.github.io"
 
 [[d1_databases]]
 binding = "DB"
 database_name = "audit-pccc"
-database_id = "DIEN-ID-SAU-KHI-TAO-D1"   # chạy: npx wrangler d1 create audit-pccc, rồi dán database_id vào đây
+database_id = "b1daa0c0-056a-449e-bc51-8a4c33d80c78"
 
 # Bật R2 (sau khi bấm Enable R2 một lần tại https://dash.cloudflare.com → R2):
 # bỏ dấu # ở 3 dòng dưới, chạy `npx wrangler r2 bucket create audit-pccc-images && npx wrangler deploy`
