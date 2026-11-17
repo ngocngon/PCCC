@@ -1706,7 +1706,8 @@ PHẠM VI (rất quan trọng)
   (1) Lỗi về phòng cháy chữa cháy, cháy nổ, thoát nạn thuộc một trong 25 hạng mục của checklist.
   (2) Lỗi KHÔNG thuộc phòng cháy nhưng NGUY HIỂM, có nguy cơ lớn về EHS: có thể gây chết người, chấn thương nặng hoặc sự cố lớn (ví dụ làm việc trên cao không chống rơi, phần mang điện hở trong tầm với, bộ phận chuyển động không che chắn, người đứng dưới tải treo, tràn đổ hóa chất độc). Loại này dùng mã EH000, được ghi riêng và không trừ điểm.
 - KHÔNG báo các lỗi EHS thông thường không liên quan cháy nổ và không nguy hiểm lớn: vệ sinh, 5S, nhãn mác, biển tên, công thái học, PPE thông thường, môi trường, nhà ăn. Thấy thì bỏ qua.
-- Một hạng mục có thể có NHIỀU lỗi khác nhau. Liệt kê hết các lỗi khác nhau nhìn thấy để đơn vị được kiểm tra khắc phục đủ, không dừng ở lỗi đầu tiên.
+- MỖI ẢNH CHỈ TÍNH MỘT HẠNG MỤC: xác định một hạng mục TRỌNG TÂM duy nhất trong 25 hạng mục cho cả ảnh (hạng mục của vi phạm chính, nghiêm trọng nhất, là lý do bức ảnh được chụp) và ghi mã vào "main_item". Mọi lỗi thuộc hạng mục trọng tâm đều liệt kê hết (một hạng mục có thể có nhiều lỗi) để đơn vị khắc phục đủ.
+- Không tính một ảnh thành hai hạng mục. Chỉ khi ảnh có thêm vi phạm RÕ RÀNG của một hạng mục khác thì mới ghi lỗi đó vào findings với "secondary": true; ứng dụng sẽ đánh dấu để người đánh giá quyết định có giữ hay không. Lỗi chỉ hơi liên quan tới hạng mục khác thì gán luôn vào hạng mục trọng tâm nếu hợp lý, hoặc bỏ qua.
 
 NGUYÊN TẮC
 - Chỉ kết luận điều NHÌN THẤY trong ảnh. Không suy đoán về hồ sơ, giấy phép, đào tạo hay tần suất kiểm tra, trừ khi ảnh chụp chính hồ sơ, giấy phép, phiếu kiểm tra đó và đọc được nội dung.
@@ -1779,7 +1780,7 @@ ${ctx(p)}
 Với mỗi lỗi, "box" là [x1,y1,x2,y2] bao sát đúng vật thể vi phạm, không bao cả một khu vực rộng, tính theo thang 0 đến 1000 trên toàn ảnh, gốc ở góc trên bên trái, x sang phải, y xuống dưới. Nếu lỗi là thiếu một thứ, khung bao vùng đáng lẽ phải có thứ đó.
 
 Chỉ trả về một JSON:
-{"scene":"một câu mô tả khu vực trong ảnh","area_guess":"tên khu vực","findings":[{${FIND},"box":[0,0,0,0]}],"compliant":["điểm đạt nhìn thấy, tối đa 3"],"verify":["việc cần kiểm tra thêm bằng hồ sơ hoặc tại chỗ, tối đa 4"]}`;
+{"scene":"một câu mô tả khu vực trong ảnh","area_guess":"tên khu vực","main_item":"mã hạng mục trọng tâm của ảnh, HM001 đến HM025 (EH000 nếu ảnh chỉ có lỗi EHS khác)","findings":[{${FIND},"secondary":false,"box":[0,0,0,0]}],"compliant":["điểm đạt nhìn thấy, tối đa 3"],"verify":["việc cần kiểm tra thêm bằng hồ sơ hoặc tại chỗ, tối đa 4"]}`;
 const promptRegion=(p,two,f,hint)=>`${BASE(p)}
 NHIỆM VỤ
 Người đánh giá đã khoanh một vùng nghi có vi phạm. ${two?'Ảnh 1 là toàn cảnh, vùng khoanh có viền màu hồng. Ảnh 2 là ảnh phóng to vùng đó.':'Vùng khoanh có viền màu hồng trên ảnh.'} Viền hồng do ứng dụng vẽ, không phải vật thể hiện trường.

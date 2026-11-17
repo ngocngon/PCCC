@@ -34,17 +34,56 @@ const pcCodeOf=(f,p)=>{try{resolveRbaCode(f,p)}catch{}return RBA.codes[f.code]?f
 function pcState(){
   const real=S.photos.filter(p=>!p.sample),by={},pend={},ehs=[];
   for(const c of RBA.order){by[c]=[];pend[c]=0}
+  let alt=0;
   for(const p of real)for(const f of p.findings){if(!done(f))continue;const c=pcCodeOf(f,p);
     if(c==='EH000'){if(f.ok)ehs.push({p,f});continue}
+    if(pcAltPending(p,f)){alt++;continue}
     if(f.ok)by[c].push({p,f});else pend[c]++}
   let lost=0,nNG=0,nOK=0,nOpen=0;const items=RBA.order.map(c=>{const v=RBA.codes[c],notes=PC.st.n[c]||[],faults=by[c];
     const st=faults.length||notes.length?'NG':PC.st.m[c]==='OK'?'OK':'';
     if(st==='NG'){lost+=v.pts;nNG++}else if(st==='OK')nOK++;else nOpen++;
     return{c,v,st,faults,notes,pend:pend[c],auto:faults.length>0}});
-  const score=100-lost;return{items,score,grade:PC_GRADE(score),lost,nNG,nOK,nOpen,ehs,nFault:items.reduce((s,x)=>s+x.faults.length+x.notes.length,0)}
+  const score=100-lost;return{items,score,grade:PC_GRADE(score),lost,nNG,nOK,nOpen,ehs,alt,nFault:items.reduce((s,x)=>s+x.faults.length+x.notes.length,0)}
 }
 function pcGroups(st){const g=[];for(const it of st.items){let x=g[g.length-1];if(!x||x.g!==it.v.g){x={g:it.v.g,gk:it.v.gk,items:[],max:0,got:0};g.push(x)}x.items.push(it);x.max+=it.v.pts;if(it.st!=='NG')x.got+=it.v.pts}return g}
 
+/* ---------- Một ảnh = một hạng mục trọng tâm ----------
+   Mỗi ảnh chỉ tính MỘT hạng mục trong 25 hạng mục. Lỗi trên cùng ảnh thuộc hạng mục khác ("hạng mục phụ")
+   không được tính điểm cho đến khi người đánh giá quyết định: giữ (tính thêm hạng mục đó), chuyển về hạng mục
+   trọng tâm, hoặc xóa. Lỗi EHS khác (EH000) không thuộc 25 hạng mục nên không bị giới hạn này. */
+const pcSevRank=f=>{const k=SEV.indexOf(f.sev);return k<0?9:k};
+function pcMain(p){
+  const fs=p.findings.filter(f=>done(f)),codes=new Map();
+  for(const f of fs){const c=pcCodeOf(f,p);if(c==='EH000')continue;const e=codes.get(c)||{c,n:0,ok:0,best:9,first:1e9};e.n++;if(f.ok)e.ok++;e.best=Math.min(e.best,pcSevRank(f));e.first=Math.min(e.first,p.findings.indexOf(f));codes.set(c,e)}
+  if(!codes.size)return'';
+  if(p.pcMain&&codes.has(p.pcMain))return p.pcMain;
+  const ai=p.analysis&&p.analysis.mainItem;if(ai&&codes.has(ai))return ai;
+  return[...codes.values()].sort((a,b)=>a.best-b.best||b.n-a.n||a.first-b.first)[0].c;
+}
+/* Lỗi thuộc hạng mục phụ, chưa được người đánh giá quyết định */
+function pcAltPending(p,f){if(!done(f)||f.pcKeep)return false;const c=pcCodeOf(f,p);if(c==='EH000')return false;const m=pcMain(p);return!!m&&c!==m}
+function pcAltList(){const out=[];for(const p of S.photos){if(p.sample)continue;for(const f of p.findings)if(pcAltPending(p,f))out.push({p,f,main:pcMain(p),c:pcCodeOf(f,p)})}return out}
+function pcAltKeep(p,f){if(!PC.canEdit())return;f.pcKeep=true;f.userEdited=true;Store.touch(p);toast(`Đã giữ: ảnh này tính thêm hạng mục ${RBA.codes[pcCodeOf(f,p)].no}.`);pcAll()}
+function pcAltMove(p,f){if(!PC.canEdit())return;const m=pcMain(p);hist(p);pcSetCode(f,m);Store.touch(p);toast(`Đã chuyển lỗi về hạng mục trọng tâm ${RBA.codes[m].no}.`);pcAll()}
+function pcAltMain(p,f){if(!PC.canEdit())return;p.pcMain=pcCodeOf(f,p);for(const x of p.findings)x.pcKeep=false;Store.touch(p);toast(`Đã đặt hạng mục ${RBA.codes[p.pcMain].no} làm hạng mục trọng tâm của ảnh.`);pcAll()}
+function pcAll(){try{renderAll()}catch{}try{renderDesk()}catch{}try{pcRender(true)}catch{}}
+function pcAltBox(p,f,compact){
+  const m=pcMain(p),c=pcCodeOf(f,p),vm=RBA.codes[m],vc=RBA.codes[c];if(!vm||!vc)return null;
+  return h('div',{class:'pc-alt',onclick:e=>e.stopPropagation()},
+    h('b',null,'⚠ Ảnh này đã tính hạng mục '+vm.no+'. Lỗi này thuộc hạng mục '+vc.no+'.'),
+    compact?null:h('small',null,`Mỗi ảnh chỉ tính một hạng mục. Hạng mục trọng tâm: ${vm.no}. ${vm.t}. Lỗi này (hạng mục ${vc.no}. ${vc.t}) chưa được tính điểm cho đến khi bạn chọn.`),
+    h('div',{class:'pc-altb'},
+      h('button',{class:'btn sm',onclick:()=>pcAltKeep(p,f)},`Giữ, tính thêm HM ${vc.no}`),
+      h('button',{class:'btn sm',onclick:()=>pcAltMove(p,f)},`Chuyển về HM ${vm.no}`),
+      h('button',{class:'btn sm',onclick:()=>pcAltMain(p,f)},`Lấy HM ${vc.no} làm trọng tâm`)));
+}
+{const _aw=applyWhole;applyWhole=function(p,data,quiet){const r=_aw(p,data,quiet);
+  try{const m=String((data&&data.main_item)||'').toUpperCase().match(/\b(HM\d{3}|EH000)\b/);if(p.analysis)p.analysis.mainItem=m?m[1]:'';
+    p.pcMain='';for(const f of p.findings)if(f.src==='ai'&&!f.ok)f.pcKeep=false;
+    const alt=p.findings.filter(f=>pcAltPending(p,f)).length;Store.touch(p);
+    if(alt&&!quiet)setTimeout(()=>toast(`Ảnh có ${alt} lỗi thuộc hạng mục khác ngoài hạng mục trọng tâm. Hãy xác nhận giữ hay không.`),1200);
+  }catch(e){console.warn(e)}
+  return r}}
 /* ---------- Màn chấm điểm (trong Báo cáo & dữ liệu) ---------- */
 let PC_OPEN='',PC_ARM=0;
 function pcTyping(){const a=document.activeElement;return!!(a&&a.closest&&a.closest('#pcList')&&/^(TEXTAREA|INPUT)$/.test(a.tagName))}
@@ -64,6 +103,11 @@ function pcRender(force){
     st.nOpen?h('button',{class:'btn sm'+(PC_ARM?' is-armed':''),onclick:e=>{if(!PC.canEdit())return;if(Date.now()-PC_ARM>4000){PC_ARM=Date.now();e.currentTarget.textContent=`Bấm lần nữa: chấm OK cho ${st.nOpen} hạng mục chưa có lỗi`;e.currentTarget.classList.add('is-armed');setTimeout(()=>{PC_ARM=0;pcRender()},4100);return}
       PC_ARM=0;for(const it of st.items)if(!it.st&&!it.pend)PC.st.m[it.c]='OK';PC.save();pcRender(true);toast('Đã chấm OK cho các hạng mục chưa có lỗi. Hạng mục còn lỗi chờ xác nhận được giữ lại.')}},`Chấm OK cho ${st.nOpen} hạng mục chưa có lỗi`):null].filter(Boolean));
   const rows=[];
+  const alts=pcAltList();
+  if(alts.length)rows.push(h('div',{class:'pc-altlist'},h('h4',null,`Ảnh có hơn một hạng mục: ${alts.length} lỗi cần bạn quyết định`),
+    h('p',{class:'hint'},'Mỗi ảnh chỉ tính một hạng mục trọng tâm. Các lỗi dưới đây thuộc hạng mục khác trên cùng ảnh, chưa được tính điểm.'),
+    ...alts.map(({p,f})=>h('div',{class:'pc-alti'},h('button',{class:'pcth',title:'Mở ảnh',onclick:()=>pcGoto(p,f)},h('img',{src:p.thumb,alt:''})),
+      h('div',null,h('span',null,(p.area?p.area+': ':'')+f.title),pcAltBox(p,f,true))))));
   for(const g of pcGroups(st)){
     rows.push(h('div',{class:'pcg'},h('b',null,g.g),h('small',null,g.gk),h('span',null,`${g.got}/${g.max}`)));
     for(const it of g.items){const v=it.v,c=it.c,open=PC_OPEN===c;
@@ -115,6 +159,7 @@ exportReady=function(){
     {ok:!run,t:run?`AI đang soát ${run} ảnh, chờ xong`:'AI đã soát xong'},
     {ok:!uns.length,warn:!!uns.length,t:uns.length?`${uns.length} ảnh chưa được AI soát`:'Mọi ảnh đã được soát',btn:uns.length&&AI.ok?['Soát ngay',()=>runAll(uns)]:null},
     {ok:!pend,t:pend?`Còn ${pend}/${its.length} lỗi chưa xác nhận`:its.length?`Đã xác nhận hết ${its.length} lỗi`:'Không có lỗi nào từ ảnh',btn:pend?['Đi xác nhận ›',()=>showReview('pend'),'btn-cfm']:null},
+    {ok:!st.alt,t:st.alt?`Còn ${st.alt} lỗi thuộc hạng mục thứ hai trên cùng ảnh, chưa quyết định giữ hay không`:'Mỗi ảnh một hạng mục trọng tâm',btn:st.alt?['Xem ›',goPc,'primary']:null},
     {ok:!st.nOpen,t:st.nOpen?`Còn ${st.nOpen}/25 hạng mục chưa chấm OK hoặc NG`:`Đã chấm đủ 25 hạng mục: ${st.score} điểm, hạng ${st.grade}`,btn:st.nOpen?['Chấm điểm ›',goPc,'primary']:null}];
   const ready=checks.every(c=>c.ok||c.warn);
   return{ready,checks,pend,ok,its,pc:st,why:checks.find(c=>!c.ok&&!c.warn)?.t||''};
@@ -123,7 +168,8 @@ gateExport=function(){const r=exportReady();if(r.ready)return true;toast(`Chưa 
 
 /* ---------- Dữ liệu xuất: lỗi theo hạng mục, đánh số trong từng hạng mục ---------- */
 function pcCollect(){
-  const st=pcState(),groups=splitGroupsByCode(gather()),by=new Map(),ehs=[];
+  const st=pcState(),skip=new Set(pcAltList().map(x=>x.f.id));
+  const groups=splitGroupsByCode(gather().map(g=>({...g,items:g.items.filter(x=>!skip.has(x.f.id))})).filter(g=>g.items.length)),by=new Map(),ehs=[];
   for(const g of groups){const c=pcCodeOf(g.items[0].f,g.p);if(c==='EH000'){ehs.push(g);continue}if(!by.has(c))by.set(c,[]);by.get(c).push(g)}
   const rows=st.items.map(it=>{const gs=by.get(it.c)||[],ent=[],pics=[];let n=0;
     for(const g of gs){const items=g.items.map(x=>({f:x.f,n:++n}));pics.push({p:g.p,items});for(const x of items)ent.push({a:g.p.qxg?'':String(g.p.area||'').trim(),t:String(x.f.title||'').trim()})}
@@ -330,4 +376,59 @@ exportPdf=async function(){
 /* Các nút không dùng trong bản PCCC */
 for(const id of['btnDocx','prevDocx','btnRev'])try{if($(id))$(id).hidden=true}catch{}
 try{const i=$('libFile');if(i)i.setAttribute('accept','.json,application/json')}catch{}
-window.__PC={state:pcState,collect:pcCollect,st:()=>PC.st,xlsx:pcExportXlsx,pdf:()=>exportPdf()};
+
+/* ---------- Chọn tay hạng mục vi phạm (Xác nhận lỗi > Sửa, Sửa nhóm lỗi lặp lại) ----------
+   Người đánh giá chọn đúng hạng mục để tránh AI gán sai. Đổi hạng mục: lỗi chuyển sang hạng mục mới
+   (hạng mục mới 0 điểm, hạng mục cũ hết lỗi thì về chưa chấm), loại lỗi mẫu không thuộc hạng mục mới bị bỏ,
+   giữ nguyên nội dung. AI ghi nhận lần sửa vào Sổ kinh nghiệm khi bấm Xác nhận. */
+function pcItemLabel(c){const v=RBA.codes[c];return v?(v.no?`${v.no}. ${v.t} (${v.pts} điểm)`:'EHS nguy hiểm khác (không tính điểm)'):'— Chưa chọn —'}
+function pcCodeSelect(cur,onPick){
+  const groups=[];for(const c of RBA.order){const v=RBA.codes[c];let g=groups[groups.length-1];if(!g||g.n!==v.g){g={n:v.g,l:[]};groups.push(g)}g.l.push(c)}
+  return h('select',{class:'pc-hm','aria-label':'Hạng mục vi phạm',onchange:e=>{if(e.target.value)onPick(e.target.value)}},
+    cur&&RBA.codes[cur]?null:h('option',{value:'',selected:true},'— Chọn hạng mục —'),
+    ...groups.map(g=>h('optgroup',{label:g.n},...g.l.map(c=>h('option',{value:c,selected:c===cur},pcItemLabel(c))))),
+    h('optgroup',{label:'Ngoài checklist'},h('option',{value:'EH000',selected:cur==='EH000'},pcItemLabel('EH000'))));
+}
+function pcSetCode(f,c){
+  const v=RBA.codes[c];if(!v||f.code===c)return false;
+  f.code=c;f.req=v.r[0][0];f.law=v.l[0]?v.l[0][1]:'';
+  if(f.rule&&RULES[f.rule]&&RULES[f.rule].c!==c)f.rule='';
+  f.codeManual=true;f.userEdited=true;return true;
+}
+/* Danh sách loại lỗi mẫu: chỉ hiện lỗi mẫu của hạng mục đang chọn */
+function pcFilterRules(sel,c){
+  if(!sel)return;let any=false;
+  for(const og of sel.querySelectorAll('optgroup')){let n=0;for(const o of og.querySelectorAll('option')){const r=RULES[o.value],on=!c||!r||r.c===c;o.hidden=!on;o.disabled=!on;if(on)n++}og.hidden=!n;og.disabled=!n;if(n)any=true}
+  const first=sel.querySelector('option[value=""]');
+  if(first&&!sel.value)first.textContent=any?'— Chọn lỗi mẫu của hạng mục này (không bắt buộc) —':'— Hạng mục này chưa có lỗi mẫu —';
+}
+{const _ie=iEditor;iEditor=function(p,f,n){
+  const el=_ie(p,f,n);
+  try{resolveRbaCode(f,p);const box=el.querySelector('.ifs'),sRule=el.querySelector('select[aria-label="Loại lỗi theo danh mục"]');
+    const sHm=pcCodeSelect(f.code,c=>{if(!PC.canEdit()){sHm.value=f.code;return}hist(p);if(pcSetCode(f,c)){Store.touch(p);
+      const others=p.findings.filter(x=>x!==f&&done(x)&&pcCodeOf(x,p)!=='EH000');if(!others.length||others.every(x=>pcCodeOf(x,p)===c))p.pcMain='';
+      toast(c==='EH000'?'Đã chuyển lỗi sang "EHS nguy hiểm khác": ghi riêng, không trừ điểm.':pcAltPending(p,f)?`Đã chuyển lỗi sang hạng mục ${RBA.codes[c].no}. Ảnh này đang tính hạng mục ${RBA.codes[pcMain(p)].no}, hãy chọn giữ hay không ở khung bên dưới.`:`Đã chuyển lỗi sang hạng mục ${RBA.codes[c].no}. Hạng mục này bị chấm 0 điểm khi lỗi được xác nhận.`);
+      renderList();renderDesk();try{pcRender(true)}catch{}}});
+    const lab=h('label',{class:'pc-hml'},h('span',null,'Hạng mục vi phạm (chọn tay nếu AI gán sai)'),sHm,
+      h('small',{class:'pc-hmh'},f.code==='EH000'?'Lỗi EHS ngoài checklist: chỉ ghi trong PDF, không trừ điểm.':`Hạng mục có lỗi đã xác nhận được chấm 0/${(RBA.codes[f.code]||{}).pts||0} điểm.`+(f.codeManual?' · Đã chọn tay':'')));
+    pcFilterRules(sRule,f.code);
+    if(sRule){const lr=sRule.closest('label');if(lr&&lr.firstChild&&lr.firstChild.nodeType===3)lr.firstChild.textContent='Loại lỗi mẫu (trong hạng mục đã chọn)'}
+    if(box){const ref=box.querySelector('.g2')||box.firstChild;box.insertBefore(lab,ref)}
+    if(box&&pcAltPending(p,f)){const ab=pcAltBox(p,f,false);if(ab)box.insertBefore(ab,lab)}
+    else if(box&&f.pcKeep&&pcCodeOf(f,p)!==pcMain(p)&&pcCodeOf(f,p)!=='EH000')box.insertBefore(h('p',{class:'pc-altok'},`Đã giữ: ảnh này tính thêm hạng mục ${RBA.codes[pcCodeOf(f,p)].no} ngoài hạng mục trọng tâm ${RBA.codes[pcMain(p)].no}.`,h('button',{class:'btn sm',onclick:()=>{f.pcKeep=false;Store.touch(p);pcAll()}},'Bỏ giữ')),lab)
+  }catch(e){console.warn(e)}
+  return el}}
+/* Sửa nhóm lỗi lặp lại: chọn hạng mục áp cho mọi vị trí trong nhóm */
+if(typeof gxEdit==='function'){const _gx=gxEdit;gxEdit=function(g){
+  const r=_gx(g);
+  try{const d=$('gxDlg'),body=d&&d.querySelector('.gxbody'),sR=d&&d.querySelector('select[aria-label="Loại lỗi theo danh mục"]'),R=g.rep.f;resolveRbaCode(R,g.rep.p);
+    const sHm=pcCodeSelect(R.code,c=>{if(!PC.canEdit()){sHm.value=R.code;return}const touched=new Set();
+      for(const x of g.items){if(!touched.has(x.p)){hist(x.p);touched.add(x.p)}pcSetCode(x.f,c)}for(const p of touched)Store.touch(p);
+      pcFilterRules(sR,c);if(sR)sR.value='';toast(`Đã chuyển ${g.items.length} lỗi của nhóm sang ${c==='EH000'?'"EHS nguy hiểm khác"':'hạng mục '+RBA.codes[c].no}.`);try{pcRender(true)}catch{}});
+    pcFilterRules(sR,R.code);
+    const lab=h('label',{class:'gxf pc-hml'},h('span',null,'Hạng mục vi phạm (áp cho cả nhóm, chọn tay nếu AI gán sai)'),sHm);
+    const anchor=sR&&sR.closest('label');if(body&&anchor){body.insertBefore(lab,anchor);const sp=anchor.querySelector('span');if(sp)sp.textContent='Loại lỗi mẫu (trong hạng mục đã chọn)'}
+    if(d)d.addEventListener('close',()=>{try{qxRefresh()}catch{}},{once:true});
+  }catch(e){console.warn(e)}
+  return r}}
+window.__PC={photos:()=>S.photos,alts:pcAltList,main:pcMain,state:pcState,collect:pcCollect,st:()=>PC.st,xlsx:pcExportXlsx,pdf:()=>exportPdf()};

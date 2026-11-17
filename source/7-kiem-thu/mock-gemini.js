@@ -47,7 +47,7 @@ window.fetch = async (u, o = {}) => {
     if (i === 3) list = [                                                   // ảnh 4: hạng mục 19 và 20
       F('E1', 'Dây cảm biến báo cháy tại trạm đổi nguồn điện 1 chiều bị tuột', 'Major', [150, 150, 450, 450]),
       F('E11', 'Trạm đổi nguồn điện 1 chiều chưa có bình cầu chữa cháy', 'Major', [500, 300, 900, 800])];
-    out = JSON.stringify({ scene: 'Khu vực', area_guess: AREAS[i], findings: list, compliant: [], verify: [] });
+    out = JSON.stringify({ scene: 'Khu vực', area_guess: AREAS[i], main_item: ['HM023', 'HM011', 'HM014', 'HM019'][i], findings: list, compliant: [], verify: [] });  // ảnh 3, 4 có lỗi của hạng mục thứ hai
   }
   await new Promise(r => setTimeout(r, 150));
   const enc = new TextEncoder();

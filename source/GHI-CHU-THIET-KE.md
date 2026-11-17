@@ -28,6 +28,18 @@ Phần A là quy tắc nghiệp vụ, không tự ý đổi. Phần B trở đi 
 - Xếp hạng theo công thức của file mẫu: A ≥ 90, B 80–89, C 70–79, D < 70.
 - Mức độ Priority/Major/Minor chỉ để xếp ưu tiên khắc phục, **không ảnh hưởng điểm**.
 
+### A3b. Một ảnh = một hạng mục trọng tâm (v1.0.2)
+
+- Mỗi ảnh chỉ tính **một hạng mục** trong 25 hạng mục: hạng mục trọng tâm (vi phạm chính, nghiêm trọng nhất). AI ghi mã này vào `main_item`; mọi lỗi của hạng mục trọng tâm vẫn liệt kê đủ.
+- Lỗi trên cùng ảnh thuộc hạng mục khác được đánh dấu **"hạng mục thứ hai"**, chưa tính điểm. Người đánh giá chọn: **Giữ, tính thêm** hạng mục đó; **Chuyển về** hạng mục trọng tâm; **Lấy làm trọng tâm**; hoặc xóa. Còn lỗi chưa quyết định thì chưa xuất được.
+- Hạng mục trọng tâm lấy theo: người đánh giá đã chọn → AI đề xuất → lỗi nặng nhất, nhiều lỗi nhất.
+- Lỗi EHS khác (EH000) không thuộc 25 hạng mục nên không bị giới hạn này.
+
+### A3c. Chọn tay hạng mục (v1.0.2)
+
+- Màn Xác nhận lỗi → Sửa và khung Sửa nhóm lỗi lặp lại có ô **"Hạng mục vi phạm"** đặt trên cùng, chọn được 25 hạng mục hoặc "EHS nguy hiểm khác".
+- Đổi hạng mục thì danh sách lỗi mẫu chỉ còn lỗi của hạng mục đó; nội dung lỗi giữ nguyên; lỗi được đánh dấu "Đã chọn tay" và AI ghi nhận vào Sổ kinh nghiệm khi xác nhận.
+
 ### A4. File checklist (.xlsx) là mẫu cố định
 
 - Mẫu trống tạo từ file ví dụ người dùng gửi (`5-mau-checklist-pccc/mau-checklist-pccc.xlsx`). **Không đổi** hạng mục, phân loại, điểm tiêu chuẩn, thang xếp hạng, công thức, bề rộng cột, ô gộp, danh sách chọn OK/NG, khổ in.
@@ -116,4 +128,5 @@ Tiền tố `soat-pccc` cho IndexedDB và localStorage, nên chạy chung trình
 
 | Bản | Nội dung |
 |---|---|
+| **v1.0.2** | Chọn tay hạng mục vi phạm ở khung Sửa và Sửa nhóm; một ảnh chỉ tính một hạng mục trọng tâm, lỗi hạng mục thứ hai phải được người đánh giá quyết định |
 | **v1.0.0** | Bản đầu, tách từ Audit RBA v1.7.0: danh mục 25 hạng mục và 90 lỗi mẫu PCCC, lời nhắc AI theo checklist, màn chấm điểm OK/NG, xuất checklist .xlsx đúng mẫu, PDF báo cáo nhanh có điểm và hạng, lỗi EHS khác ghi riêng, đồng bộ bảng chấm lên máy chủ |
