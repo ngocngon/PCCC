@@ -270,19 +270,18 @@ const pcRowPt=r=>PCT.ht[r]||PCT.ht[String(r)]||114;
 function pcTextPt(text,pt){const px=pt*4/3;let lines=0;for(const l of String(text).split('\n')){let w=0;for(const ch of l)w+=/[ᄀ-ᇿ⺀-鿿가-힣＀-￯]/.test(ch)?px*1.02:/[A-ZĐ0-9]/.test(ch)?px*.66:ch===' '?px*.28:px*.56;lines+=Math.max(1,Math.ceil(w*1.12/PCX.textPx))}return lines*pt*1.32+14}
 /* Cỡ chữ ô nội dung NG: 18 → 14 → 11, chọn cỡ lớn nhất vừa chiều cao hàng */
 function pcStyle(text,k,maxPt){const left=k>1,S=PCT.st;let last;for(const[pt,c,l]of[[18,S.c18,S.l18],[14,S.c14,S.l14],[11,S.c11,S.l11]]){const hpt=pcTextPt(text,pt);last={s:left?l:c,pt:hpt};if(hpt<=maxPt)return last}return last}
-/* ẢNH TRONG Ô (v1.1.1): MỖI Ô MỘT ẢNH, mọi ảnh cùng MỘT kích thước 16:9, luôn căn giữa ô theo cả hai chiều
-   (lề trái = lề phải, lề trên = lề dưới). Hạng mục có nhiều ảnh: ảnh tiếp theo đặt sang ô liền kề bên phải.
-   Kích thước tính từ hàng thấp nhất của mẫu để ô nào cũng vừa; cột ảnh thêm rộng vừa bằng ảnh + lề. */
-const PCI=(()=>{const pad=10,minRowPx=Math.min(...Object.values(PCT.ht))*4/3;
-  let h=Math.floor(minRowPx-2*pad),w=Math.round(h*16/9);
-  if(w>PCX.colPx-2*pad){w=PCX.colPx-2*pad;h=Math.round(w*9/16)}
-  return{w,h,pad,scale:4,max:PCT.imgCols.length,xw:Math.round((w+2*pad)/7*100)/100}})();
+/* ẢNH TRONG Ô (v1.1.2): MỖI Ô MỘT ẢNH, tỷ lệ 16:9, TỐI ĐA 3 ẢNH MỘT HÀNG (ô hình ảnh + 2 ô liền kề bên phải).
+   Ảnh to nhỏ theo chiều cao của từng hàng: cao = hàng − 2 lề, rộng theo 16:9 (không vượt bề ngang ô); luôn căn giữa ô.
+   Các cột ảnh thêm rộng bằng đúng cột hình ảnh của mẫu để mọi ô ảnh như nhau. */
+const PCI={pad:10,max:Math.min(3,PCT.imgCols.length),cw:1280,ch:720,xw:Math.round(PCT.px.img/7*10000)/10000};
+PCI.fullPt=Math.ceil((Math.round((PCX.colPx-2*PCI.pad)*9/16)+2*PCI.pad)*.75*4)/4;
+function pcImgSize(rowPx){let h=Math.floor(rowPx-2*PCI.pad),w=Math.round(h*16/9);if(w>PCX.colPx-2*PCI.pad){w=PCX.colPx-2*PCI.pad;h=Math.round(w*9/16)}return{w,h}}
 const pcColNo=c=>{let n=0;for(const ch of c)n=n*26+ch.charCodeAt(0)-64;return n};
 /* độ rộng (px) của cột ảnh thứ k: cột đầu theo mẫu, các cột thêm = ảnh + 2 lề */
-const pcImgColPx=k=>k?Math.floor(PCI.xw*7+5):PCX.colPx;
+const pcImgColPx=k=>PCX.colPx;
 function pcDraw(g,im,p,items,x,y,w,h,mo){drawUniform43(g,im,p,(items||[]).filter(x=>x&&x.f&&x.f.s&&!x.f.whole),x,y,w,h,{...(mo||{}),cover:true})}
 async function pcTile(pic,more){
-  const W=PCI.w*PCI.scale,H=PCI.h*PCI.scale,c=mk(W,H),g=c.getContext('2d');await fonts();
+  const W=PCI.cw,H=PCI.ch,c=mk(W,H),g=c.getContext('2d');await fonts();
   g.fillStyle='#FFFFFF';g.fillRect(0,0,W,H);
   const im=await ensureImg(pic.p);if(im)pcDraw(g,im,pic.p,pic.items,0,0,W,H,{lw:Math.max(3,W/180),r:clamp(W/18,16,40),minFrac:1});
   if(pic.ev){const t='ĐẠT',fs=Math.round(H/9);g.font=`700 ${fs}px ${fontD}`;const tw=g.measureText(t).width+fs;g.fillStyle='#15803D';g.fillRect(W-tw-10,10,tw,fs*1.5);g.fillStyle='#fff';g.textBaseline='middle';g.textAlign='center';g.fillText(t,W-10-tw/2,10+fs*.78)}
@@ -290,7 +289,7 @@ async function pcTile(pic,more){
   return toBlob(c,'image/jpeg',.88);
 }
 /* Vị trí ảnh trong ô thứ k: căn giữa ô */
-function pcTilePos(k,rowPx){return{x:Math.max(0,Math.round((pcImgColPx(k)-PCI.w)/2)),y:Math.max(0,Math.round((rowPx-PCI.h)/2))}}
+function pcTilePos(k,rowPx){const z=pcImgSize(rowPx);return{...z,x:Math.max(0,Math.round((pcImgColPx(k)-z.w)/2)),y:Math.max(0,Math.round((rowPx-z.h)/2))}}
 /* thêm một ô vào đúng vị trí cột trong dòng */
 function pcAddCell(body,colL,r,xml){
   if(new RegExp(`<c r="${colL}${r}"`).test(body))return pcSetCell(body,colL+r,xml);
@@ -348,6 +347,8 @@ async function pcExportXlsx(){
       if(it){
         const allPics=it.pics,nP=Math.min(allPics.length,PCI.max);let pt=pcRowPt(r),sty=null,text='';
         for(const c of IC.slice(1))body=pcAddCell(body,c,r,pcCell(c+r,T.imgStyle,''));
+        /* hàng có ảnh: cao tối thiểu để ảnh 16:9 lấp đầy bề ngang ô → 4 lề đều bằng nhau (10 px) */
+        if(nP)pt=Math.max(pt,PCI.fullPt);
         if(it.st==='NG'){text=pcItemText(it,L);sty=pcStyle(text,it.ent.length,pt);pt=Math.max(pt,sty.pt)}
         pt=Math.min(409,Math.round(pt*4)/4);
         attrs=(/ht="/.test(attrs)?attrs.replace(/ht="[\d.]+"/,`ht="${pt}"`):attrs+` ht="${pt}"`);attrs=/customHeight=/.test(attrs)?attrs.replace(/customHeight="[^"]*"/,'customHeight="1"'):attrs+' customHeight="1"';
@@ -355,10 +356,10 @@ async function pcExportXlsx(){
         if(it.st==='NG'){body=pcSetCell(body,sc,pcCell(sc,T.st.ng,0));body=pcSetCell(body,rs,pcCell(rs,T.st.ng,'NG'));body=pcSetCell(body,tx,pcCell(tx,sty.s,text))}
         else{body=pcSetCell(body,sc,pcCell(sc,okS,it.v.pts));body=pcSetCell(body,rs,pcCell(rs,pcStyleOf(body,rs,okS),'OK'))}
         if(nP){const rowPx=pt*4/3;
-          for(let k=0;k<nP;k++){const{x,y}=pcTilePos(k,rowPx),c0=pcColNo(IC[k])-1;no++;
+          for(let k=0;k<nP;k++){const{x,y,w:iw,h:ih}=pcTilePos(k,rowPx),c0=pcColNo(IC[k])-1;no++;
             media.push({no,pic:allPics[k],more:k===nP-1&&allPics.length>nP?allPics.length-nP+1:0});
             rels+=`<Relationship Id="rId${no}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/image${no}.jpeg"/>`;
-            pics+=`<xdr:oneCellAnchor><xdr:from><xdr:col>${c0}</xdr:col><xdr:colOff>${x*PCX.emu}</xdr:colOff><xdr:row>${r-1}</xdr:row><xdr:rowOff>${y*PCX.emu}</xdr:rowOff></xdr:from><xdr:ext cx="${PCI.w*PCX.emu}" cy="${PCI.h*PCX.emu}"/><xdr:pic><xdr:nvPicPr><xdr:cNvPr id="${no+1}" name="HM${it.v.no} anh ${k+1}"/><xdr:cNvPicPr><a:picLocks noChangeAspect="1"/></xdr:cNvPicPr></xdr:nvPicPr><xdr:blipFill><a:blip r:embed="rId${no}"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill><xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${PCI.w*PCX.emu}" cy="${PCI.h*PCX.emu}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr></xdr:pic><xdr:clientData/></xdr:oneCellAnchor>`}}
+            pics+=`<xdr:oneCellAnchor><xdr:from><xdr:col>${c0}</xdr:col><xdr:colOff>${x*PCX.emu}</xdr:colOff><xdr:row>${r-1}</xdr:row><xdr:rowOff>${y*PCX.emu}</xdr:rowOff></xdr:from><xdr:ext cx="${iw*PCX.emu}" cy="${ih*PCX.emu}"/><xdr:pic><xdr:nvPicPr><xdr:cNvPr id="${no+1}" name="HM${it.v.no} anh ${k+1}"/><xdr:cNvPicPr><a:picLocks noChangeAspect="1"/></xdr:cNvPicPr></xdr:nvPicPr><xdr:blipFill><a:blip r:embed="rId${no}"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill><xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${iw*PCX.emu}" cy="${ih*PCX.emu}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr></xdr:pic><xdr:clientData/></xdr:oneCellAnchor>`}}
       }
       return`<row r="${rn}"${attrs}>${body}</row>`});
     /* cột ảnh thêm: đặt độ rộng, gộp ô tiêu đề "Hình ảnh" qua các cột ảnh, nới vùng ngắt trang */

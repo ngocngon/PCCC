@@ -105,6 +105,12 @@ Phần A là quy tắc nghiệp vụ, không tự ý đổi. Phần B trở đi 
 - **Bỏ dòng tiêu đề lặp**: chuan_bi_mau.py xóa các dòng tiêu đề lặp giữa bảng (dòng 14, 24 của mẫu công ty), dồn dòng, sửa công thức, ô gộp, ngắt trang; 25 hạng mục nay ở dòng 8–32, tổng G33. Khi in, dòng tiêu đề vẫn lặp ở đầu mỗi trang nhờ Print Titles.
 - **Cột J (nội dung NG)** nới từ 58,3 lên 76 để hiện đủ chữ. Tỷ lệ in tự giảm theo cả chiều rộng và chiều cao.
 
+### A3l. Bản v1.1.2: ảnh Excel 4 lề đều, tối đa 3 ảnh một hàng
+
+- Người dùng chọn: ảnh to nhỏ theo chiều cao hàng, tối đa 3 ảnh một hàng (cột K, L, N; ảnh thứ 3 ghi +n nếu còn). Mỗi ô một ảnh 16:9, căn giữa.
+- Để 4 lề thực sự bằng nhau (10 px): cột ảnh thêm rộng bằng đúng cột K; **hàng có ảnh cao tối thiểu 165 pt** (ô 375×220 px, ảnh 355×200 px). Hàng không có ảnh giữ chiều cao của mẫu. Hàng phải cao hơn nữa vì chữ dài thì ảnh giữ 355×200, lề trên/dưới lớn hơn.
+- pcImgSize(rowPx) tính kích thước ảnh theo hàng; PCI.fullPt là chiều cao tối thiểu của hàng có ảnh. Kịch bản kiểm tra: tối đa 3 ảnh/hàng, 16:9, căn giữa, 4 lề 8–14 px ở hàng cao chuẩn.
+
 ### A4. File checklist (.xlsx) là mẫu cố định
 
 - Mẫu trống tạo từ file ví dụ người dùng gửi (`5-mau-checklist-pccc/mau-checklist-pccc.xlsx`). **Không đổi** hạng mục, phân loại, điểm tiêu chuẩn, thang xếp hạng, công thức, bề rộng cột, ô gộp, danh sách chọn OK/NG, khổ in.
@@ -193,6 +199,7 @@ Tiền tố `soat-pccc` cho IndexedDB và localStorage, nên chạy chung trình
 
 | Bản | Nội dung |
 |---|---|
+| **v1.1.2** | Excel: ảnh 4 lề đều 10 px, tối đa 3 ảnh một hàng, hàng có ảnh cao 165 pt |
 | **v1.1.1** | Ảnh báo cáo giữ toàn cảnh; gộp lỗi trùng trong một ảnh; Excel mỗi ô một ảnh 16:9, ảnh thêm sang ô liền kề; bỏ dòng tiêu đề lặp; cột J rộng hơn |
 | **v1.1.0** | PDF chỉ còn bìa (không điểm, không hạng) + trang ảnh, cắt ảnh tập trung vào lỗi; thêm 29 lỗi mẫu tủ điện và lối thoát nạn, quy tắc trọng tâm; tối ưu giao diện thao tác |
 | **v1.0.10** | PDF bỏ mức độ và biện pháp khắc phục, chỉ còn ảnh và lỗi vi phạm |

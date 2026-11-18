@@ -8,7 +8,7 @@
 - công thức, ô gộp, ngắt trang, khổ in, độ rộng cột, kiểu ô (styles.xml) không đổi;
 - 25 hàng hạng mục có customHeight="1", không thấp hơn chiều cao của mẫu;
 - điểm/kết quả/nội dung khớp quy tắc (NG = 0 điểm + có nội dung; OK = đủ điểm + không nội dung);
-- ảnh: cùng một kích thước, nằm trọn trong ô hình ảnh của đúng dòng, khối ảnh căn giữa ô (lệch ≤ 2 px), có lề."""
+- ảnh: mỗi ô một ảnh 16:9, tối đa 3 ảnh một hàng, to nhỏ theo chiều cao hàng (lề nhỏ nhất khoảng 10 px), căn giữa ô (lệch ≤ 2 px)."""
 import sys, re, zipfile, html, json, pathlib
 tpl, out = sys.argv[1], sys.argv[2]
 LAY = json.loads(pathlib.Path(sys.argv[3] if len(sys.argv) > 3 else pathlib.Path(__file__).resolve().parents[1] / '5-mau-checklist-pccc' / 'bo-cuc-mau.json').read_text(encoding='utf-8'))
@@ -83,16 +83,19 @@ nimg = len([n for n in zb.namelist() if n.startswith('xl/media/')]); nrel = zb.r
 anc = re.findall(r'<xdr:oneCellAnchor><xdr:from><xdr:col>(\d+)</xdr:col><xdr:colOff>(\d+)</xdr:colOff><xdr:row>(\d+)</xdr:row><xdr:rowOff>(\d+)</xdr:rowOff></xdr:from><xdr:ext cx="(\d+)" cy="(\d+)"/>', dr)
 if not (nimg == nrel == len(anc)): bad.append(f'ảnh {nimg}, quan hệ {nrel}, neo {len(anc)}')
 E, colpx = 9525, LAY['px']['img']
-if len({(cx, cy) for *_, cx, cy in anc}) > 1: bad.append('ảnh không cùng kích thước')
-seen = set()
+seen = set(); rowsz = {}
+if len(IC) < 3: bad.append('mẫu không đủ 3 cột ảnh')
 for c, x, r, y, cx, cy in anc:
     c, x, r, y, w, h = int(c) + 1, int(x) / E, int(r) + 1, int(y) / E, int(cx) / E, int(cy) / E
     if abs(w / h - 16 / 9) > .02: bad.append(f'ảnh dòng {r} không đúng tỷ lệ 16:9 ({w:.0f}x{h:.0f})')
     if c not in [cn(k) for k in IC]: bad.append(f'ảnh ở cột {c} không phải cột ảnh'); continue
     if (c, r) in seen: bad.append(f'ô cột {c} dòng {r} có hơn một ảnh')
+    if c not in [cn(k) for k in IC[:3]]: bad.append(f'dòng {r}: quá 3 ảnh một hàng')
+    if rowsz.setdefault(r, (w, h)) != (w, h): bad.append(f'dòng {r}: các ảnh không cùng kích thước')
     seen.add((c, r))
     if r not in rowpt: bad.append(f'ảnh ở dòng {r} không phải dòng hạng mục'); continue
-    cp = colpx if c == cn(IC[0]) else int(cb[c][0] * 7 + 5); rp = rowpt[r] * 4 / 3
+    cp = colpx if c == cn(IC[0]) else round(cb[c][0] * 7); rp = rowpt[r] * 4 / 3
+    if min(x, y) < 8 or max(x, y) > 14 and rp <= 221: bad.append(f'ảnh dòng {r} cột {c}: 4 lề chưa đều (ngang {x:.0f}, dọc {y:.0f} px)')
     if x < 2 or y < 2 or x + w > cp - 2 or y + h > rp - 2: bad.append(f'ảnh dòng {r} cột {c} chạm/tràn viền ô ({x:.0f},{y:.0f},{w:.0f}x{h:.0f} trong {cp}x{rp:.0f})')
     if abs(x - (cp - x - w)) > 2 or abs(y - (rp - y - h)) > 2: bad.append(f'ảnh dòng {r} cột {c} chưa căn giữa (trái {x:.0f}/phải {cp-x-w:.0f}, trên {y:.0f}/dưới {rp-y-h:.0f})')
 # các cột ảnh của một dòng phải dùng liên tục từ cột đầu
