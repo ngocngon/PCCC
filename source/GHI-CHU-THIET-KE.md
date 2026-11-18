@@ -85,8 +85,8 @@ Phần A là quy tắc nghiệp vụ, không tự ý đổi. Phần B trở đi 
 ### A3i. Bản v1.0.9: PDF và Excel xuất đầy đủ mọi lỗi
 
 - Nguyên nhân thiếu lỗi: tính năng "gộp lỗi lặp lại khi xuất" thừa hưởng từ Audit RBA gộp các lỗi giống nhau ở nhiều vị trí thành một dòng "(lặp lại tại N vị trí)" và chỉ giữ một ảnh đại diện. Bản PCCC không dùng cơ chế này khi xuất: pcCollect lấy thẳng từng lỗi đã xác nhận của từng ảnh.
-- Trang "Nội dung NG theo hạng mục" thành danh sách lỗi chi tiết: mọi lỗi của mọi hạng mục NG (kể cả lỗi không ảnh), thêm mục "Lỗi EHS khác"; mỗi lỗi có khu vực: nội dung, bản dịch, mức độ, biện pháp khắc phục. Trước đây hạng mục dài hơn một trang bị cắt; nay chia sang trang sau với tiêu đề "(tiếp)", không bỏ dòng nào.
-- Trang ảnh: thêm dòng "Khắc phục"; ảnh có nhiều lỗi không vừa một trang thì chia sang trang nối tiếp cùng ảnh "(tiếp)".
+- Trang "Nội dung NG theo hạng mục" thành danh sách lỗi chi tiết: mọi lỗi của mọi hạng mục NG (kể cả lỗi không ảnh), thêm mục "Lỗi EHS khác"; mỗi lỗi có khu vực: nội dung, bản dịch. (v1.0.10: theo yêu cầu, PDF không in mức độ và biện pháp khắc phục, chỉ ảnh và lỗi vi phạm.) Trước đây hạng mục dài hơn một trang bị cắt; nay chia sang trang sau với tiêu đề "(tiếp)", không bỏ dòng nào.
+- Trang ảnh: chỉ ảnh khoanh vùng và lỗi vi phạm; ảnh có nhiều lỗi không vừa một trang thì chia sang trang nối tiếp cùng ảnh "(tiếp)".
 - Excel: nội dung cột NG liệt kê đủ mọi lỗi; ô hình ảnh vẫn tối đa 8 ảnh (ảnh cuối ghi +n) vì giới hạn chiều cao hàng 409 pt.
 
 ### A4. File checklist (.xlsx) là mẫu cố định
@@ -177,6 +177,7 @@ Tiền tố `soat-pccc` cho IndexedDB và localStorage, nên chạy chung trình
 
 | Bản | Nội dung |
 |---|---|
+| **v1.0.10** | PDF bỏ mức độ và biện pháp khắc phục, chỉ còn ảnh và lỗi vi phạm |
 | **v1.0.9** | PDF/Excel xuất đủ mọi lỗi (bỏ gộp lỗi lặp lại kiểu RBA); danh sách lỗi chi tiết có mức độ, khắc phục, lỗi EHS; chia trang không cắt dòng |
 | **v1.0.8** | Dùng mẫu checklist chuẩn của công ty (có dòng tiêu đề lặp mỗi trang); bố cục đọc tự động từ mẫu; ảnh cùng kích thước, căn giữa ô có lề; giữ hàng/cột/ngắt trang của mẫu, chỉ giảm tỷ lệ in khi cần |
 | **v1.0.7** | Sửa nhãn "Đạt" xanh sai trên trang lỗi trong PDF; Excel: hàng cố định không tự co giãn, cột nội dung và hình ảnh rộng hơn, cùng chiều cao hàng, in vừa trang ngang |

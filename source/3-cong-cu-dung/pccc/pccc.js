@@ -412,16 +412,13 @@ async function pcBoard(col,L,page,total){
 }
 /* Danh sách NG: chia trang theo chiều cao chữ */
 /* Danh sách lỗi chi tiết: MỌI lỗi của mọi hạng mục NG (kể cả lỗi không ảnh) và lỗi EHS khác.
-   Mỗi lỗi: số thứ tự, khu vực: nội dung, mức độ, biện pháp khắc phục, bản dịch. Hạng mục dài được chia sang trang sau, không cắt bớt. */
+   Mỗi lỗi: số thứ tự, khu vực: nội dung, bản dịch (không in mức độ, biện pháp khắc phục). Hạng mục dài được chia sang trang sau, không cắt bớt. */
 const PC_SEV={Priority:'Nghiêm trọng',Major:'Lớn',Minor:'Nhỏ'};
 function pcNgBlocks(col,L,FB){
   const m=mk(10,10).getContext('2d'),tw=PCW-2*PCM-90,out=[];
   const mkLines=(ents)=>{const lines=[];ents.forEach((e,i)=>{
       m.font=`600 25px ${FB}`;const vi=`${ents.length>1?i+1+'. ':''}${e.a?e.a+': ':''}${e.t}`;for(const l of wrapX(m,vi,tw))lines.push({t:l,c:'#14191C',f:`600 25px ${FB}`,hh:34,k:i});
       if(L!=='vi'){const x=lxT(L,e.t);if(x){m.font=`400 22px ${FB}`;const a=e.a?(lxT(L,e.a)||e.a)+': ':'';for(const l of wrapX(m,a+x,tw))lines.push({t:l,c:'#1F4E8C',f:`400 22px ${FB}`,hh:30,k:i})}}
-      const f=e.f,meta=[];if(f&&PC_SEV[f.sev])meta.push(`Mức độ: ${PC_SEV[f.sev]}`);if(e.note)meta.push('Ghi nhận không kèm ảnh (hồ sơ / phỏng vấn)');
-      if(meta.length){m.font=`500 21px ${FB}`;for(const l of wrapX(m,meta.join(' · '),tw))lines.push({t:l,c:'#6B7780',f:`500 21px ${FB}`,hh:29,k:i})}
-      if(f&&String(f.fixNow||'').trim()){m.font=`400 21px ${FB}`;for(const l of wrapX(m,'Khắc phục: '+String(f.fixNow).trim(),tw))lines.push({t:l,c:'#166534',f:`400 21px ${FB}`,hh:29,k:i})}
       lines.push({gap:12,k:i})});return lines};
   for(const r of col.rows){if(r.st!=='NG')continue;out.push({head:{no:`${r.v.no}`,t:r.v.vi,s:`0/${r.v.pts}`,c:'#B91C1C'},lines:mkLines(r.ent)})}
   const eh=col.ehs.flatMap(g=>g.items.map(x=>({a:g.p.qxg?'':String(g.p.area||'').trim(),t:String(x.f.title||'').trim(),f:x.f})));
@@ -455,7 +452,7 @@ function pcNgCanvas(blocks,L,FB,page,total,part,parts){
 function pcSlideChunks(items,L,FB){
   const m=mk(10,10).getContext('2d'),bh=(PCH-82)-188,tw=PCW-PCM-(PCM+980+52+66);
   const hOf=(f,z)=>{const lh=Math.round(z*1.3),xs=Math.round(z*.88),xlh=Math.round(xs*1.3),cs=Math.max(15,Math.round(z*.62)),ch=Math.round(cs*1.55)+8;
-    m.font=`600 ${z}px ${FB}`;const tl=wrapX(m,f.title,tw).length,tr=L==='vi'?'':capOf(L,f.title);m.font=`500 ${xs}px ${FB}`;const xl=tr?wrapX(m,tr,tw).length:0,fx=String(f.fixNow||'').trim()?wrapX(m,'Khắc phục: '+f.fixNow,tw).length:0;
+    m.font=`600 ${z}px ${FB}`;const tl=wrapX(m,f.title,tw).length,tr=L==='vi'?'':capOf(L,f.title);m.font=`500 ${xs}px ${FB}`;const xl=tr?wrapX(m,tr,tw).length:0,fx=0;
     return ch+tl*lh+(xl?8+xl*xlh:0)+(fx?6+fx*xlh:0)+Math.round(z*.9)};
   const all=items.reduce((s,x)=>s+hOf(x.f,16),0);if(all<=bh)return[items];
   const out=[];let cur=[],hh=0;for(const x of items){const v=hOf(x.f,20);if(cur.length&&hh+v>bh){out.push(cur);cur=[];hh=0}cur.push(x);hh+=v}if(cur.length)out.push(cur);return out;
@@ -476,7 +473,7 @@ async function pcSlide(p,items,idx,L,page,total,only,cont){
   const single=items.length<=1,x0=px+FW+52,tx=x0+(single?24:66),tw=W-M-tx,cols=colorsOf(items);
   let F=null;
   for(const z of[34,31,28,26,24,22,20,18,16]){const lh=Math.round(z*1.3),xs=Math.round(z*.88),xlh=Math.round(xs*1.3),cs=Math.max(15,Math.round(z*.62)),ch=Math.round(cs*1.55)+8,gap=Math.round(z*.9);let tot=0;
-    const bl=items.map(({f,n})=>{g.font=`600 ${z}px ${FB}`;const tl=wrapX(g,f.title,tw),tr=L==='vi'?'':capOf(L,f.title);g.font=`500 ${xs}px ${FB}`;const xl=tr?wrapX(g,tr,tw):[];const fx=String(f.fixNow||'').trim()?wrapX(g,'Khắc phục: '+String(f.fixNow).trim(),tw):[];const hh=ch+tl.length*lh+(xl.length?8+xl.length*xlh:0)+(fx.length?6+fx.length*xlh:0);tot+=hh+gap;return{f,n,tl,xl,fx,hh}});
+    const bl=items.map(({f,n})=>{g.font=`600 ${z}px ${FB}`;const tl=wrapX(g,f.title,tw),tr=L==='vi'?'':capOf(L,f.title);g.font=`500 ${xs}px ${FB}`;const xl=tr?wrapX(g,tr,tw):[];const fx=[];const hh=ch+tl.length*lh+(xl.length?8+xl.length*xlh:0)+(fx.length?6+fx.length*xlh:0);tot+=hh+gap;return{f,n,tl,xl,fx,hh}});
     tot-=gap;F={z,lh,xs,xlh,cs,ch,gap,bl,tot};if(tot<=bh)break}
   g.save();g.beginPath();g.rect(x0-6,top-6,W-M-x0+12,bh+12);g.clip();
   let y=top+Math.max(0,(bh-F.tot)/2);
