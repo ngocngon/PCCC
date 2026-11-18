@@ -14,7 +14,11 @@ SRC = pathlib.Path(__file__).resolve().parents[2]
 TPL = SRC / '5-mau-checklist-pccc' / 'mau-checklist-pccc.xlsx'
 CAT = SRC / '5-mau-checklist-pccc' / 'danh-muc-pccc.json'
 APP = SRC / '1-ma-nguon-app' / 'soat-anh-pccc.html'
-FIRST, LAST = 8, 32
+LAYF = SRC / '5-mau-checklist-pccc' / 'bo-cuc-mau.json'   # do chuan_bi_mau.py tạo
+LAY = json.loads(LAYF.read_text(encoding='utf-8'))
+ROWS = {int(k): v for k, v in LAY['rows'].items()}
+COL = LAY['col']
+FIRST, LAST = min(ROWS.values()), max(ROWS.values())
 
 z = zipfile.ZipFile(TPL)
 sst = z.read('xl/sharedStrings.xml').decode('utf-8')
@@ -30,18 +34,18 @@ def val(ref):
 
 cat = json.loads(CAT.read_text(encoding='utf-8'))
 codes, order, grp = {}, [], None
-for r in range(FIRST, LAST + 1):
-    no = int(float(val(f'B{r}'))); assert no == r - FIRST + 1, (r, no)
-    c = val(f'C{r}')
+for no in range(1, 26):
+    r = ROWS[no]; assert int(float(val(f"{COL['no']}{r}"))) == no, (r, no)
+    c = val(f"{COL['grp']}{r}")
     if c:
         ls = [x.strip() for x in c.split('\n') if x.strip()]
         ko = ' '.join(x for x in ls if re.search(r'[가-힣]', x) and not re.search(r'\d+점', x))
         vi = ' '.join(x for x in ls if not re.search(r'[가-힣]', x))
         cand = {'ko': ko, 'vi': re.sub(r'\s+', ' ', vi).strip()}
         if not grp or cand['vi'] != grp['vi']: grp = cand
-    d = val(f'D{r}').split('\n', 1)
+    d = val(f"{COL['desc']}{r}").strip().split('\n', 1)
     ko, vi = (d[0].strip(), d[1].strip()) if len(d) == 2 else ('', d[0].strip())
-    pts = int(float(val(f'E{r}')))
+    pts = int(float(val(f"{COL['std']}{r}")))
     meta = cat['items'][str(no)]
     code = f'HM{no:03d}'
     codes[code] = {'no': no, 'row': r, 'g': grp['vi'], 'gk': grp['ko'], 't': meta['short'], 'vi': vi, 'ko': ko, 'pts': pts, 'doc': bool(meta.get('doc')),
@@ -64,7 +68,7 @@ for r in cat['rules']:
 miss = [c for c in order if not any(r['c'] == c for r in rules)]
 assert not miss, f'Hạng mục chưa có lỗi mẫu: {miss}'
 
-data = {'codes': codes, 'order': order, 'rules': rules, 'tpl': {'map': {}, 'first': FIRST, 'last': LAST, 'b64': base64.b64encode(TPL.read_bytes()).decode()}}
+data = {'codes': codes, 'order': order, 'rules': rules, 'tpl': {'map': {}, 'first': FIRST, 'last': LAST, 'lay': LAY, 'b64': base64.b64encode(TPL.read_bytes()).decode()}}
 line = 'const RBA=' + json.dumps(data, ensure_ascii=False, separators=(',', ':')) + ';'
 s = APP.read_text(encoding='utf-8')
 n1 = len(re.findall(r'^const RBA=.*$', s, flags=re.M)); assert n1 == 1, n1

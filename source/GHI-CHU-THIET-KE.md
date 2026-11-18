@@ -73,6 +73,15 @@ Phần A là quy tắc nghiệp vụ, không tự ý đổi. Phần B trở đi 
 - Ảnh Excel 220×165 px, 2 ảnh mỗi dòng trong ô. Cỡ chữ nội dung NG tự chọn 18 → 14 → 11 theo chiều cao hàng thực tế; chỉ hàng có chữ quá dài hoặc từ 3 ảnh trở lên mới cao hơn.
 - Kịch bản kiểm tra mẫu chấp nhận đổi độ rộng cột H, I và cách in; kiểm tra thêm 25 hàng phải có customHeight="1".
 
+### A3h. Bản v1.0.8: dùng mẫu checklist chuẩn của công ty, bố cục đọc tự động
+
+- Mẫu gốc của công ty đặt ở `source/5-mau-checklist-pccc/goc/mau-cong-ty.xlsx` (mẫu cũ lưu ở `goc/mau-cu-v1.0.7.xlsx`). Muốn đổi mẫu: thay file này rồi build lại.
+- `chuan_bi_mau.py` (build tự chạy) đọc bố cục từ chính mẫu: dòng của 25 hạng mục (tìm theo cột "No" = 1…25, bỏ qua các dòng tiêu đề lặp ở đầu mỗi trang), cột theo tiêu đề (Điểm tiêu chuẩn, Điểm đánh giá, Kết quả, Nội dung, Hình ảnh), ô thông tin đầu trang (ô ngay bên phải nhãn Tên công ty, Người kiểm tra, Ngày kiểm tra, Phân loại), ô tổng (dòng SUM), ô xếp hạng (ô có công thức IF … "A"). Ghi ra `bo-cuc-mau.json`; app điền theo bố cục này.
+- Mẫu công ty hiện tại: dòng hạng mục 8–13, 15–23, 25–34; tiêu đề lặp 7, 14, 24; cột F chuẩn, G điểm, H kết quả, J nội dung, K hình ảnh; tổng G35; hạng K2; đầu trang D2–D5.
+- Giữ nguyên độ rộng cột, chiều cao hàng (160,5 / 127,5 / 114 theo từng trang), ngắt trang, lề, khổ in của mẫu. Chỉ sửa customHeight cho hợp lệ, bỏ calcChain và bật tính lại công thức khi mở, thêm phần khai báo ảnh và 7 kiểu ô nền vàng cho dòng NG.
+- Ảnh: mọi ảnh cùng một kích thước tính từ ô hình ảnh nhỏ nhất của mẫu (hiện 173×129 px), luôn căn giữa ô theo cả hai chiều, lề 10 px; 2 ảnh mỗi dòng. Chỉ hàng có chữ quá dài hoặc từ 3 ảnh trở lên mới cao hơn; khi đó app chỉ giảm tỷ lệ in để mỗi trang vẫn vừa 1 tờ A4 ngang theo ngắt trang của mẫu.
+- Kịch bản kiểm tra đọc `bo-cuc-mau.json`: kiểm tra ô cố định, công thức, cột, ô gộp, ngắt trang, styles, chiều cao hàng, điểm/kết quả, và ảnh (cùng kích thước, nằm trọn trong ô, khối ảnh căn giữa lệch ≤ 2 px).
+
 ### A4. File checklist (.xlsx) là mẫu cố định
 
 - Mẫu trống tạo từ file ví dụ người dùng gửi (`5-mau-checklist-pccc/mau-checklist-pccc.xlsx`). **Không đổi** hạng mục, phân loại, điểm tiêu chuẩn, thang xếp hạng, công thức, bề rộng cột, ô gộp, danh sách chọn OK/NG, khổ in.
@@ -161,6 +170,7 @@ Tiền tố `soat-pccc` cho IndexedDB và localStorage, nên chạy chung trình
 
 | Bản | Nội dung |
 |---|---|
+| **v1.0.8** | Dùng mẫu checklist chuẩn của công ty (có dòng tiêu đề lặp mỗi trang); bố cục đọc tự động từ mẫu; ảnh cùng kích thước, căn giữa ô có lề; giữ hàng/cột/ngắt trang của mẫu, chỉ giảm tỷ lệ in khi cần |
 | **v1.0.7** | Sửa nhãn "Đạt" xanh sai trên trang lỗi trong PDF; Excel: hàng cố định không tự co giãn, cột nội dung và hình ảnh rộng hơn, cùng chiều cao hàng, in vừa trang ngang |
 | **v1.0.6** | Nút Chèn ảnh (ảnh xác nhận đạt hoặc ảnh lỗi) ở màn chấm điểm, xóa nhanh ảnh chèn nhầm; ảnh báo cáo phủ kín khung, cùng một kích thước; 25 hàng Excel cùng chiều cao, chỉ hàng quá nhiều chữ/ảnh mới cao hơn |
 | **v1.0.5** | Chọn một hoặc nhiều hạng mục cho ảnh/lỗi liên quan nhiều hạng mục; mọi danh sách xếp theo hạng mục 1 → 25; nút xóa nhanh; chèn ảnh bổ sung ở màn chấm điểm; tự học lỗi hay gặp, chặn lỗi mơ hồ; PDF xếp ảnh theo hạng mục, không gộp |

@@ -253,15 +253,20 @@ function pcItemText(r,L){
 }
 
 /* ---------- Xuất checklist (.xlsx): điền vào mẫu cố định ---------- */
-/* Bố cục Excel v1.0.7: cột H (nội dung) 72, cột I (hình ảnh) 66; 25 hàng hạng mục cùng cao 150 pt; in vừa 1 trang ngang */
-const PCX={colH:72,colI:66,emu:9525,gap:6};PCX.colPx=Math.floor(PCX.colI*7+5);PCX.textPx=Math.floor(PCX.colH*7+5)-14;
+/* Bố cục Excel v1.0.8: ĐỌC TỪ MẪU CỦA CÔNG TY (bo-cuc-mau.json, do chuan_bi_mau.py tạo khi build).
+   Giữ nguyên độ rộng cột, chiều cao hàng, ngắt trang của mẫu. Chỉ hàng có chữ quá dài hoặc từ 3 ảnh trở lên mới cao hơn. */
+const PCT=RBA.tpl.lay;
+const PCX={emu:9525,colPx:PCT.px.img,textPx:PCT.px.text-14};
+const pcRowPt=r=>PCT.ht[r]||PCT.ht[String(r)]||114;
 function pcTextPt(text,pt){const px=pt*4/3;let lines=0;for(const l of String(text).split('\n')){let w=0;for(const ch of l)w+=/[ᄀ-ᇿ⺀-鿿가-힣＀-￯]/.test(ch)?px*1.02:/[A-ZĐ0-9]/.test(ch)?px*.66:ch===' '?px*.28:px*.56;lines+=Math.max(1,Math.ceil(w*1.12/PCX.textPx))}return lines*pt*1.32+14}
-/* Hàng hạng mục: cùng một chiều cao cố định. Chữ: giảm cỡ (18 → 14 → 11) để vừa hàng; chỉ khi vẫn không vừa mới kéo hàng cao hơn (ngoại lệ) */
-const PC_ROWPT=150;
-function pcStyle(text,k,maxPt){const left=k>1,lim=maxPt||PC_ROWPT;let last;for(const[pt,c,l]of[[18,15,21],[14,22,23],[11,24,25]]){const hpt=pcTextPt(text,pt);last={s:left?l:c,pt:hpt};if(hpt<=lim)return last}return last}
-/* Ảnh trong Excel: mọi ảnh cùng MỘT kích thước 4:3, phủ kín khung (không viền đen), đặt trong ô cột I, 2 ảnh mỗi dòng.
-   Hàng chuẩn chứa được 2 ảnh; hạng mục có 3 ảnh trở lên thì hàng cao thêm (ngoại lệ). */
-const PCI={w:220,h:165,gap:6,pad:10,scale:4,perLine:2,max:8};
+/* Cỡ chữ ô nội dung NG: 18 → 14 → 11, chọn cỡ lớn nhất vừa chiều cao hàng */
+function pcStyle(text,k,maxPt){const left=k>1,S=PCT.st;let last;for(const[pt,c,l]of[[18,S.c18,S.l18],[14,S.c14,S.l14],[11,S.c11,S.l11]]){const hpt=pcTextPt(text,pt);last={s:left?l:c,pt:hpt};if(hpt<=maxPt)return last}return last}
+/* ẢNH TRONG Ô: mọi ảnh cùng MỘT kích thước 4:3, luôn căn giữa ô theo cả chiều ngang và dọc, chừa lề đều ở 4 cạnh.
+   Kích thước tính từ ô hình ảnh nhỏ nhất của mẫu: 2 ảnh đặt cạnh nhau vẫn vừa chiều ngang, 1 dòng ảnh vừa hàng thấp nhất. */
+const PCI=(()=>{const pad=10,gap=8,perLine=2,minRowPx=Math.min(...Object.values(PCT.ht))*4/3;
+  let w=Math.floor((PCX.colPx-2*pad-(perLine-1)*gap)/perLine),h=Math.floor(w*3/4);
+  if(h>minRowPx-2*pad){h=Math.floor(minRowPx-2*pad);w=Math.floor(h*4/3)}
+  return{w,h,gap,pad,scale:4,perLine,max:8}})();
 function pcDraw(g,im,p,items,x,y,w,h,mo){drawUniform43(g,im,p,(items||[]).filter(x=>x&&x.f&&x.f.s&&!x.f.whole),x,y,w,h,{...(mo||{}),cover:true})}
 async function pcTile(pic,more){
   const W=PCI.w*PCI.scale,H=PCI.h*PCI.scale,c=mk(W,H),g=c.getContext('2d');await fonts();
@@ -272,15 +277,27 @@ async function pcTile(pic,more){
   return toBlob(c,'image/jpeg',.88);
 }
 function pcTileLayout(n){const m=Math.min(n,PCI.max),lines=Math.ceil(m/PCI.perLine),bh=lines*PCI.h+(lines-1)*PCI.gap;return{m,lines,bh,needPx:bh+2*PCI.pad}}
+/* Vị trí từng ảnh trong ô: căn giữa khối ảnh trong ô (rowPx × colPx), mỗi dòng ảnh cũng căn giữa */
+function pcTilePos(k,m,rowPx){const TL=pcTileLayout(m),line=Math.floor(k/PCI.perLine),inLine=Math.min(PCI.perLine,TL.m-line*PCI.perLine),c=k%PCI.perLine,lw=inLine*PCI.w+(inLine-1)*PCI.gap;
+  return{x:Math.max(0,Math.round((PCX.colPx-lw)/2))+c*(PCI.w+PCI.gap),y:Math.max(0,Math.round((rowPx-TL.bh)/2))+line*(PCI.h+PCI.gap)}}
 const pcCell=(ref,s,v)=>typeof v==='number'?`<c r="${ref}" s="${s}"><v>${v}</v></c>`:v?`<c r="${ref}" s="${s}" t="inlineStr"><is><t xml:space="preserve">${esc(v)}</t></is></c>`:`<c r="${ref}" s="${s}"/>`;
 function pcSetCell(body,ref,xml){const rx=new RegExp(`<c r="${ref}"(?: [^>/]*)?(?:/>|>[\\s\\S]*?</c>)`);if(!rx.test(body))throw new Error('Mẫu thiếu ô '+ref);return body.replace(rx,()=>xml)}
-/* Chuẩn hóa bố cục trang: customHeight hợp lệ (để Excel không tự co giãn hàng), độ rộng cột H/I, in vừa chiều ngang */
-function pcSheetLayout(sh){
-  sh=sh.replace(/customHeight="[^"]*"/g,'customHeight="1"');
-  sh=sh.replace(/<col min="8" max="8" width="[\d.]+"/,`<col min="8" max="8" width="${PCX.colH}"`).replace(/<col min="9" max="9" width="[\d.]+"/,`<col min="9" max="9" width="${PCX.colI}"`);
-  sh=sh.replace(/<sheetPr\/>/,'<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>').replace(/<sheetPr>(?![\s\S]*?pageSetUpPr)/,'<sheetPr><pageSetUpPr fitToPage="1"/>');
-  sh=sh.replace(/<pageSetup ([^>]*?)\/>/,(m,a)=>`<pageSetup ${a.replace(/\s*scale="\d+"/,'').replace(/\s*fitTo(Width|Height)="\d+"/g,'')} fitToWidth="1" fitToHeight="0"/>`);
-  return sh;
+const pcStyleOf=(body,ref,def)=>(body.match(new RegExp(`<c r="${ref}" s="(\\d+)"`))||[])[1]||def;
+/* In ấn: giữ ngắt trang của mẫu. Nếu hàng nào phải cao hơn (ngoại lệ) làm một trang bị tràn,
+   chỉ giảm tỷ lệ in (scale) cho vừa, không đổi bố cục. */
+function pcFitPrint(sh){
+  const ps=sh.match(/<pageSetup [^>]*\/>/);if(!ps)return sh;
+  const sc0=Number((ps[0].match(/scale="(\d+)"/)||[])[1]||100),land=/orientation="landscape"/.test(ps[0]);
+  const pm=sh.match(/<pageMargins [^>]*\/>/),mg=k=>Number(((pm&&pm[0].match(new RegExp(`${k}="([\\d.]+)"`)))||[])[1]||.75);
+  const def=Number((sh.match(/defaultRowHeight="([\d.]+)"/)||[])[1]||15),ht={};let maxR=0;
+  for(const m of sh.matchAll(/<row r="(\d+)"([^>]*)>/g)){const r=+m[1];maxR=Math.max(maxR,r);const h=m[2].match(/ht="([\d.]+)"/);ht[r]=h?+h[1]:def}
+  const brk=[...sh.matchAll(/<brk id="(\d+)"/g)].map(m=>+m[1]).sort((a,b)=>a-b),secs=[];let a=1;
+  for(const b of[...brk,maxR]){if(b>=a){secs.push([a,b]);a=b+1}}
+  const tall=Math.max(...secs.map(([s,e])=>{let t=0;for(let r=s;r<=e;r++)t+=ht[r]??def;return t}));
+  const avail=((land?8.27:11.69)-mg('top')-mg('bottom'))*72*0.97;  /* A4, chừa 3% an toàn */
+  const need=Math.floor(100*avail/tall);
+  if(need>=sc0)return sh;
+  return sh.replace(ps[0],ps[0].replace(/scale="\d+"/,`scale="${Math.max(10,need)}"`));
 }
 let pcBusy=false;
 async function pcExportXlsx(){
@@ -293,33 +310,34 @@ async function pcExportXlsx(){
     if(L){busy(cur(),`Đang dịch nội dung sang ${CAPN[L]}…`);try{miss=await lxEnsure(L,pcTexts(col),t=>busy(cur(),t))}catch(e){console.warn(e)}finally{busy(null)}}
     const z=await JSZip.loadAsync(RBA.tpl.b64,{base64:true}),put=(k,v)=>z.file(k,v,{createFolders:false});
     let sh=await z.file('xl/worksheets/sheet1.xml').async('string');
-    sh=pcSheetLayout(sh);
-    const date=$('mDate').value||today(),head={2:$('mUnit').value.trim(),3:$('mWho').value.trim(),4:vnDate(date),5:$('mSub').value.trim()};
+    const T=PCT,C=T.col,date=$('mDate').value||today(),head={[T.info.unit]:$('mUnit').value.trim(),[T.info.who]:$('mWho').value.trim(),[T.info.date]:vnDate(date),[T.info.sub]:$('mSub').value.trim()};
     let pics='',rels='',no=0;const score=col.rows.reduce((s,r)=>s+(r.st==='NG'?0:r.v.pts),0),grade=PC_GRADE(score);
     const byRow=new Map(col.rows.map(r=>[r.v.row,r]));
-    const media=[];
+    const media=[],rowOf=ref=>Number(ref.replace(/\D/g,''));
     sh=sh.replace(/<row r="(\d+)"([^>]*)>([\s\S]*?)<\/row>/g,(m,rn,attrs,body)=>{
       const r=Number(rn);
-      if(head[r]!==undefined){const s=(body.match(new RegExp(`<c r="D${r}" s="(\\d+)"`))||[])[1]||'3';body=pcSetCell(body,'D'+r,pcCell('D'+r,s,head[r]));
-        if(r===2)body=body.replace(/(<c r="I2"[^>]*>[\s\S]*?<v>)[^<]*(<\/v>)/,`$1${grade}$2`)}
+      /* thông tin đầu trang */
+      for(const[ref,v]of Object.entries(head))if(rowOf(ref)===r)body=pcSetCell(body,ref,pcCell(ref,pcStyleOf(body,ref,'0'),v));
+      if(rowOf(T.grade)===r)body=body.replace(new RegExp(`(<c r="${T.grade}"[^>]*>[\\s\\S]*?<v>)[^<]*(</v>)`),`$1${grade}$2`);
+      if(r===T.total.row)body=body.replace(new RegExp(`(<c r="${T.total.score}"[^>]*>[\\s\\S]*?<v>)[^<]*(</v>)`),`$1${score}$2`);
       const it=byRow.get(r);
       if(it){
-        const allPics=it.pics,TL=pcTileLayout(allPics.length);let pt=PC_ROWPT,sty=null,text='';
+        const allPics=it.pics,TL=pcTileLayout(allPics.length);let pt=pcRowPt(r),sty=null,text='';
         if(allPics.length)pt=Math.max(pt,TL.needPx*.75);
         if(it.st==='NG'){text=pcItemText(it,L);sty=pcStyle(text,it.ent.length,pt);pt=Math.max(pt,sty.pt)}
-        pt=Math.min(409,pt);
-        attrs=(/ht="/.test(attrs)?attrs.replace(/ht="[\d.]+"/,`ht="${pt.toFixed(1)}"`):attrs+` ht="${pt.toFixed(1)}"`);if(!/customHeight=/.test(attrs))attrs+=' customHeight="1"';
-        if(it.st==='NG'){body=pcSetCell(body,'F'+r,pcCell('F'+r,15,0));body=pcSetCell(body,'G'+r,pcCell('G'+r,15,'NG'));body=pcSetCell(body,'H'+r,pcCell('H'+r,sty.s,text))}
-        else{body=pcSetCell(body,'F'+r,pcCell('F'+r,8,it.v.pts));body=pcSetCell(body,'G'+r,pcCell('G'+r,8,'OK'))}
-        if(allPics.length){const rowPx=pt/.75,y0=Math.max(2,Math.round((rowPx-TL.bh)/2));
-          for(let k=0;k<TL.m;k++){const line=Math.floor(k/PCI.perLine),inLine=Math.min(PCI.perLine,TL.m-line*PCI.perLine),col=k%PCI.perLine,lw=inLine*PCI.w+(inLine-1)*PCI.gap;
-            const x=Math.round((PCX.colPx-lw)/2)+col*(PCI.w+PCI.gap),y=y0+line*(PCI.h+PCI.gap);no++;
+        pt=Math.min(409,Math.round(pt*4)/4);
+        attrs=(/ht="/.test(attrs)?attrs.replace(/ht="[\d.]+"/,`ht="${pt}"`):attrs+` ht="${pt}"`);attrs=/customHeight=/.test(attrs)?attrs.replace(/customHeight="[^"]*"/,'customHeight="1"'):attrs+' customHeight="1"';
+        const sc=C.score+r,rs=C.res+r,tx=C.text+r,okS=pcStyleOf(body,sc,'0');
+        if(it.st==='NG'){body=pcSetCell(body,sc,pcCell(sc,T.st.ng,0));body=pcSetCell(body,rs,pcCell(rs,T.st.ng,'NG'));body=pcSetCell(body,tx,pcCell(tx,sty.s,text))}
+        else{body=pcSetCell(body,sc,pcCell(sc,okS,it.v.pts));body=pcSetCell(body,rs,pcCell(rs,pcStyleOf(body,rs,okS),'OK'))}
+        if(allPics.length){const rowPx=pt*4/3;
+          for(let k=0;k<TL.m;k++){const{x,y}=pcTilePos(k,TL.m,rowPx);no++;
             media.push({no,pic:allPics[k],more:k===TL.m-1&&allPics.length>TL.m?allPics.length-TL.m+1:0});
             rels+=`<Relationship Id="rId${no}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/image${no}.jpeg"/>`;
-            pics+=`<xdr:oneCellAnchor><xdr:from><xdr:col>8</xdr:col><xdr:colOff>${x*PCX.emu}</xdr:colOff><xdr:row>${r-1}</xdr:row><xdr:rowOff>${y*PCX.emu}</xdr:rowOff></xdr:from><xdr:ext cx="${PCI.w*PCX.emu}" cy="${PCI.h*PCX.emu}"/><xdr:pic><xdr:nvPicPr><xdr:cNvPr id="${no+1}" name="HM${it.v.no} anh ${k+1}"/><xdr:cNvPicPr><a:picLocks noChangeAspect="1"/></xdr:cNvPicPr></xdr:nvPicPr><xdr:blipFill><a:blip r:embed="rId${no}"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill><xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${PCI.w*PCX.emu}" cy="${PCI.h*PCX.emu}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr></xdr:pic><xdr:clientData/></xdr:oneCellAnchor>`}}
+            pics+=`<xdr:oneCellAnchor><xdr:from><xdr:col>${T.imgCol0}</xdr:col><xdr:colOff>${x*PCX.emu}</xdr:colOff><xdr:row>${r-1}</xdr:row><xdr:rowOff>${y*PCX.emu}</xdr:rowOff></xdr:from><xdr:ext cx="${PCI.w*PCX.emu}" cy="${PCI.h*PCX.emu}"/><xdr:pic><xdr:nvPicPr><xdr:cNvPr id="${no+1}" name="HM${it.v.no} anh ${k+1}"/><xdr:cNvPicPr><a:picLocks noChangeAspect="1"/></xdr:cNvPicPr></xdr:nvPicPr><xdr:blipFill><a:blip r:embed="rId${no}"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill><xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${PCI.w*PCX.emu}" cy="${PCI.h*PCX.emu}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr></xdr:pic><xdr:clientData/></xdr:oneCellAnchor>`}}
       }
-      if(r===RBA.tpl.last+1)body=body.replace(/(<c r="F\d+"[^>]*>[\s\S]*?<v>)[^<]*(<\/v>)/,`$1${score}$2`);
       return`<row r="${rn}"${attrs}>${body}</row>`});
+    sh=pcFitPrint(sh);
     for(const{no:k,pic,more}of media)put(`xl/media/image${k}.jpeg`,await pcTile(pic,more));
     put('xl/worksheets/sheet1.xml',sh);
     put('xl/drawings/drawing1.xml',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">${pics}</xdr:wsDr>`);

@@ -120,6 +120,7 @@ def main() -> None:
         base_html = SRC / "1-ma-nguon-app" / "soat-anh-pccc.html"
         idx = out / "index.html"
 
+        run_py(str(TOOLS / "pccc" / "chuan_bi_mau.py"))   # mẫu công ty → mẫu trống + bo-cuc-mau.json
         run_py(str(TOOLS / "pccc" / "nap_danh_muc.py"))
         run_py(str(TOOLS / "patch_pwa.py"), str(base_html), str(idx), ver)
         try:
