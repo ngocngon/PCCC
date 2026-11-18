@@ -126,6 +126,7 @@ function pcSortPhotos(arr){const idx=new Map(S.photos.map((p,i)=>[p,i]));return 
 function pcFindRank(p,f){return done(f)?pcRank(pcCodeOf(f,p)):98}
 {const _aw=applyWhole;applyWhole=function(p,data,quiet){const r=_aw(p,data,quiet);
   try{const m=String((data&&data.main_item)||'').toUpperCase().match(/\b(HM\d{3}|EH000)\b/);if(p.analysis)p.analysis.mainItem=m?m[1]:'';
+    try{pcDedupe(p)}catch(e){console.warn(e)}
     p.pcMain='';p.pcSel=null;p.pcSeen=null;Store.touch(p);
     if(pcNeedAsk(p)&&!quiet)setTimeout(()=>toast(`Ảnh có lỗi liên quan ${pcCands(p).length} hạng mục. Hãy chọn một hay nhiều hạng mục để tính điểm.`),1200);
   }catch(e){console.warn(e)}
@@ -269,31 +270,40 @@ const pcRowPt=r=>PCT.ht[r]||PCT.ht[String(r)]||114;
 function pcTextPt(text,pt){const px=pt*4/3;let lines=0;for(const l of String(text).split('\n')){let w=0;for(const ch of l)w+=/[ᄀ-ᇿ⺀-鿿가-힣＀-￯]/.test(ch)?px*1.02:/[A-ZĐ0-9]/.test(ch)?px*.66:ch===' '?px*.28:px*.56;lines+=Math.max(1,Math.ceil(w*1.12/PCX.textPx))}return lines*pt*1.32+14}
 /* Cỡ chữ ô nội dung NG: 18 → 14 → 11, chọn cỡ lớn nhất vừa chiều cao hàng */
 function pcStyle(text,k,maxPt){const left=k>1,S=PCT.st;let last;for(const[pt,c,l]of[[18,S.c18,S.l18],[14,S.c14,S.l14],[11,S.c11,S.l11]]){const hpt=pcTextPt(text,pt);last={s:left?l:c,pt:hpt};if(hpt<=maxPt)return last}return last}
-/* ẢNH TRONG Ô: mọi ảnh cùng MỘT kích thước 4:3, luôn căn giữa ô theo cả chiều ngang và dọc, chừa lề đều ở 4 cạnh.
-   Kích thước tính từ ô hình ảnh nhỏ nhất của mẫu: 2 ảnh đặt cạnh nhau vẫn vừa chiều ngang, 1 dòng ảnh vừa hàng thấp nhất. */
-const PCI=(()=>{const pad=10,gap=8,perLine=2,minRowPx=Math.min(...Object.values(PCT.ht))*4/3;
-  let w=Math.floor((PCX.colPx-2*pad-(perLine-1)*gap)/perLine),h=Math.floor(w*3/4);
-  if(h>minRowPx-2*pad){h=Math.floor(minRowPx-2*pad);w=Math.floor(h*4/3)}
-  return{w,h,gap,pad,scale:4,perLine,max:8}})();
+/* ẢNH TRONG Ô (v1.1.1): MỖI Ô MỘT ẢNH, mọi ảnh cùng MỘT kích thước 16:9, luôn căn giữa ô theo cả hai chiều
+   (lề trái = lề phải, lề trên = lề dưới). Hạng mục có nhiều ảnh: ảnh tiếp theo đặt sang ô liền kề bên phải.
+   Kích thước tính từ hàng thấp nhất của mẫu để ô nào cũng vừa; cột ảnh thêm rộng vừa bằng ảnh + lề. */
+const PCI=(()=>{const pad=10,minRowPx=Math.min(...Object.values(PCT.ht))*4/3;
+  let h=Math.floor(minRowPx-2*pad),w=Math.round(h*16/9);
+  if(w>PCX.colPx-2*pad){w=PCX.colPx-2*pad;h=Math.round(w*9/16)}
+  return{w,h,pad,scale:4,max:PCT.imgCols.length,xw:Math.round((w+2*pad)/7*100)/100}})();
+const pcColNo=c=>{let n=0;for(const ch of c)n=n*26+ch.charCodeAt(0)-64;return n};
+/* độ rộng (px) của cột ảnh thứ k: cột đầu theo mẫu, các cột thêm = ảnh + 2 lề */
+const pcImgColPx=k=>k?Math.floor(PCI.xw*7+5):PCX.colPx;
 function pcDraw(g,im,p,items,x,y,w,h,mo){drawUniform43(g,im,p,(items||[]).filter(x=>x&&x.f&&x.f.s&&!x.f.whole),x,y,w,h,{...(mo||{}),cover:true})}
 async function pcTile(pic,more){
   const W=PCI.w*PCI.scale,H=PCI.h*PCI.scale,c=mk(W,H),g=c.getContext('2d');await fonts();
   g.fillStyle='#FFFFFF';g.fillRect(0,0,W,H);
-  const im=await ensureImg(pic.p);if(im)pcDraw(g,im,pic.p,pic.items,0,0,W,H,{lw:Math.max(3,W/180),r:clamp(W/18,16,40),minFrac:.62});
+  const im=await ensureImg(pic.p);if(im)pcDraw(g,im,pic.p,pic.items,0,0,W,H,{lw:Math.max(3,W/180),r:clamp(W/18,16,40),minFrac:1});
   if(pic.ev){const t='ĐẠT',fs=Math.round(H/9);g.font=`700 ${fs}px ${fontD}`;const tw=g.measureText(t).width+fs;g.fillStyle='#15803D';g.fillRect(W-tw-10,10,tw,fs*1.5);g.fillStyle='#fff';g.textBaseline='middle';g.textAlign='center';g.fillText(t,W-10-tw/2,10+fs*.78)}
   if(more>0){g.fillStyle='rgba(15,23,42,.62)';g.fillRect(0,0,W,H);g.fillStyle='#fff';g.font=`700 ${Math.round(H/3.2)}px ${fontD}`;g.textAlign='center';g.textBaseline='middle';g.fillText(`+${more}`,W/2,H/2)}
   return toBlob(c,'image/jpeg',.88);
 }
-function pcTileLayout(n){const m=Math.min(n,PCI.max),lines=Math.ceil(m/PCI.perLine),bh=lines*PCI.h+(lines-1)*PCI.gap;return{m,lines,bh,needPx:bh+2*PCI.pad}}
-/* Vị trí từng ảnh trong ô: căn giữa khối ảnh trong ô (rowPx × colPx), mỗi dòng ảnh cũng căn giữa */
-function pcTilePos(k,m,rowPx){const TL=pcTileLayout(m),line=Math.floor(k/PCI.perLine),inLine=Math.min(PCI.perLine,TL.m-line*PCI.perLine),c=k%PCI.perLine,lw=inLine*PCI.w+(inLine-1)*PCI.gap;
-  return{x:Math.max(0,Math.round((PCX.colPx-lw)/2))+c*(PCI.w+PCI.gap),y:Math.max(0,Math.round((rowPx-TL.bh)/2))+line*(PCI.h+PCI.gap)}}
+/* Vị trí ảnh trong ô thứ k: căn giữa ô */
+function pcTilePos(k,rowPx){return{x:Math.max(0,Math.round((pcImgColPx(k)-PCI.w)/2)),y:Math.max(0,Math.round((rowPx-PCI.h)/2))}}
+/* thêm một ô vào đúng vị trí cột trong dòng */
+function pcAddCell(body,colL,r,xml){
+  if(new RegExp(`<c r="${colL}${r}"`).test(body))return pcSetCell(body,colL+r,xml);
+  const n=pcColNo(colL);let at=body.length;
+  for(const m of body.matchAll(/<c r="([A-Z]+)\d+"/g)){if(pcColNo(m[1])>n){at=m.index;break}}
+  return body.slice(0,at)+xml+body.slice(at);
+}
 const pcCell=(ref,s,v)=>typeof v==='number'?`<c r="${ref}" s="${s}"><v>${v}</v></c>`:v?`<c r="${ref}" s="${s}" t="inlineStr"><is><t xml:space="preserve">${esc(v)}</t></is></c>`:`<c r="${ref}" s="${s}"/>`;
 function pcSetCell(body,ref,xml){const rx=new RegExp(`<c r="${ref}"(?: [^>/]*)?(?:/>|>[\\s\\S]*?</c>)`);if(!rx.test(body))throw new Error('Mẫu thiếu ô '+ref);return body.replace(rx,()=>xml)}
 const pcStyleOf=(body,ref,def)=>(body.match(new RegExp(`<c r="${ref}" s="(\\d+)"`))||[])[1]||def;
 /* In ấn: giữ ngắt trang của mẫu. Nếu hàng nào phải cao hơn (ngoại lệ) làm một trang bị tràn,
    chỉ giảm tỷ lệ in (scale) cho vừa, không đổi bố cục. */
-function pcFitPrint(sh){
+function pcFitPrint(sh,lastCol){
   const ps=sh.match(/<pageSetup [^>]*\/>/);if(!ps)return sh;
   const sc0=Number((ps[0].match(/scale="(\d+)"/)||[])[1]||100),land=/orientation="landscape"/.test(ps[0]);
   const pm=sh.match(/<pageMargins [^>]*\/>/),mg=k=>Number(((pm&&pm[0].match(new RegExp(`${k}="([\\d.]+)"`)))||[])[1]||.75);
@@ -301,9 +311,12 @@ function pcFitPrint(sh){
   for(const m of sh.matchAll(/<row r="(\d+)"([^>]*)>/g)){const r=+m[1];maxR=Math.max(maxR,r);const h=m[2].match(/ht="([\d.]+)"/);ht[r]=h?+h[1]:def}
   const brk=[...sh.matchAll(/<brk id="(\d+)"/g)].map(m=>+m[1]).sort((a,b)=>a-b),secs=[];let a=1;
   for(const b of[...brk,maxR]){if(b>=a){secs.push([a,b]);a=b+1}}
-  const tall=Math.max(...secs.map(([s,e])=>{let t=0;for(let r=s;r<=e;r++)t+=ht[r]??def;return t}));
-  const avail=((land?8.27:11.69)-mg('top')-mg('bottom'))*72*0.97;  /* A4, chừa 3% an toàn */
-  const need=Math.floor(100*avail/tall);
+  const title=ht[PCT.hdrRow]??def;   /* dòng tiêu đề lặp lại ở đầu các trang sau khi in */
+  const tall=Math.max(...secs.map(([s,e],i)=>{let t=i?title:0;for(let r=s;r<=e;r++)t+=ht[r]??def;return t}));
+  const availH=((land?8.27:11.69)-mg('top')-mg('bottom'))*72*0.97,availW=((land?11.69:8.27)-mg('left')-mg('right'))*72*0.97;
+  const cw={};for(const m of sh.matchAll(/<col min="(\d+)" max="(\d+)" width="([\d.]+)"([^>]*)\/>/g))for(let c=+m[1];c<=Math.min(+m[2],60);c++)cw[c]=/hidden="1"/.test(m[4])?0:+m[3];
+  let wide=0;for(let c=1;c<=lastCol;c++)wide+=(cw[c]??8.43)*7*.75;
+  const need=Math.floor(100*Math.min(availH/tall,availW/wide));
   if(need>=sc0)return sh;
   return sh.replace(ps[0],ps[0].replace(/scale="\d+"/,`scale="${Math.max(10,need)}"`));
 }
@@ -322,30 +335,44 @@ async function pcExportXlsx(){
     let pics='',rels='',no=0;const score=col.rows.reduce((s,r)=>s+(r.st==='NG'?0:r.v.pts),0),grade=PC_GRADE(score);
     const byRow=new Map(col.rows.map(r=>[r.v.row,r]));
     const media=[],rowOf=ref=>Number(ref.replace(/\D/g,''));
-    sh=sh.replace(/<row r="(\d+)"([^>]*)>([\s\S]*?)<\/row>/g,(m,rn,attrs,body)=>{
+    /* số cột ảnh cần dùng: hạng mục nhiều ảnh nhất quyết định; mỗi ô một ảnh */
+    const nImg=Math.max(1,...col.rows.map(r=>Math.min(r.pics.length,PCI.max))),IC=T.imgCols.slice(0,nImg);
+    sh=sh.replace(/<row r="(\d+)"((?:[^>\/]|\/(?!>))*)>([\s\S]*?)<\/row>/g,(m,rn,attrs,body)=>{
       const r=Number(rn);
       /* thông tin đầu trang */
       for(const[ref,v]of Object.entries(head))if(rowOf(ref)===r)body=pcSetCell(body,ref,pcCell(ref,pcStyleOf(body,ref,'0'),v));
       if(rowOf(T.grade)===r)body=body.replace(new RegExp(`(<c r="${T.grade}"[^>]*>[\\s\\S]*?<v>)[^<]*(</v>)`),`$1${grade}$2`);
       if(r===T.total.row)body=body.replace(new RegExp(`(<c r="${T.total.score}"[^>]*>[\\s\\S]*?<v>)[^<]*(</v>)`),`$1${score}$2`);
+      if(r===T.hdrRow)for(const c of IC.slice(1))body=pcAddCell(body,c,r,pcCell(c+r,T.hdrStyle,''));
       const it=byRow.get(r);
       if(it){
-        const allPics=it.pics,TL=pcTileLayout(allPics.length);let pt=pcRowPt(r),sty=null,text='';
-        if(allPics.length)pt=Math.max(pt,TL.needPx*.75);
+        const allPics=it.pics,nP=Math.min(allPics.length,PCI.max);let pt=pcRowPt(r),sty=null,text='';
+        for(const c of IC.slice(1))body=pcAddCell(body,c,r,pcCell(c+r,T.imgStyle,''));
         if(it.st==='NG'){text=pcItemText(it,L);sty=pcStyle(text,it.ent.length,pt);pt=Math.max(pt,sty.pt)}
         pt=Math.min(409,Math.round(pt*4)/4);
         attrs=(/ht="/.test(attrs)?attrs.replace(/ht="[\d.]+"/,`ht="${pt}"`):attrs+` ht="${pt}"`);attrs=/customHeight=/.test(attrs)?attrs.replace(/customHeight="[^"]*"/,'customHeight="1"'):attrs+' customHeight="1"';
         const sc=C.score+r,rs=C.res+r,tx=C.text+r,okS=pcStyleOf(body,sc,'0');
         if(it.st==='NG'){body=pcSetCell(body,sc,pcCell(sc,T.st.ng,0));body=pcSetCell(body,rs,pcCell(rs,T.st.ng,'NG'));body=pcSetCell(body,tx,pcCell(tx,sty.s,text))}
         else{body=pcSetCell(body,sc,pcCell(sc,okS,it.v.pts));body=pcSetCell(body,rs,pcCell(rs,pcStyleOf(body,rs,okS),'OK'))}
-        if(allPics.length){const rowPx=pt*4/3;
-          for(let k=0;k<TL.m;k++){const{x,y}=pcTilePos(k,TL.m,rowPx);no++;
-            media.push({no,pic:allPics[k],more:k===TL.m-1&&allPics.length>TL.m?allPics.length-TL.m+1:0});
+        if(nP){const rowPx=pt*4/3;
+          for(let k=0;k<nP;k++){const{x,y}=pcTilePos(k,rowPx),c0=pcColNo(IC[k])-1;no++;
+            media.push({no,pic:allPics[k],more:k===nP-1&&allPics.length>nP?allPics.length-nP+1:0});
             rels+=`<Relationship Id="rId${no}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/image${no}.jpeg"/>`;
-            pics+=`<xdr:oneCellAnchor><xdr:from><xdr:col>${T.imgCol0}</xdr:col><xdr:colOff>${x*PCX.emu}</xdr:colOff><xdr:row>${r-1}</xdr:row><xdr:rowOff>${y*PCX.emu}</xdr:rowOff></xdr:from><xdr:ext cx="${PCI.w*PCX.emu}" cy="${PCI.h*PCX.emu}"/><xdr:pic><xdr:nvPicPr><xdr:cNvPr id="${no+1}" name="HM${it.v.no} anh ${k+1}"/><xdr:cNvPicPr><a:picLocks noChangeAspect="1"/></xdr:cNvPicPr></xdr:nvPicPr><xdr:blipFill><a:blip r:embed="rId${no}"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill><xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${PCI.w*PCX.emu}" cy="${PCI.h*PCX.emu}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr></xdr:pic><xdr:clientData/></xdr:oneCellAnchor>`}}
+            pics+=`<xdr:oneCellAnchor><xdr:from><xdr:col>${c0}</xdr:col><xdr:colOff>${x*PCX.emu}</xdr:colOff><xdr:row>${r-1}</xdr:row><xdr:rowOff>${y*PCX.emu}</xdr:rowOff></xdr:from><xdr:ext cx="${PCI.w*PCX.emu}" cy="${PCI.h*PCX.emu}"/><xdr:pic><xdr:nvPicPr><xdr:cNvPr id="${no+1}" name="HM${it.v.no} anh ${k+1}"/><xdr:cNvPicPr><a:picLocks noChangeAspect="1"/></xdr:cNvPicPr></xdr:nvPicPr><xdr:blipFill><a:blip r:embed="rId${no}"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill><xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${PCI.w*PCX.emu}" cy="${PCI.h*PCX.emu}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr></xdr:pic><xdr:clientData/></xdr:oneCellAnchor>`}}
       }
       return`<row r="${rn}"${attrs}>${body}</row>`});
-    sh=pcFitPrint(sh);
+    /* cột ảnh thêm: đặt độ rộng, gộp ô tiêu đề "Hình ảnh" qua các cột ảnh, nới vùng ngắt trang */
+    const lastCol=pcColNo(IC[IC.length-1]);
+    if(nImg>1){const xs=IC.slice(1).map(pcColNo),keep=[];
+      sh=sh.replace(/<cols>([\s\S]*?)<\/cols>/,(m,inner)=>{const out=[];
+        for(const c of inner.matchAll(/<col min="(\d+)" max="(\d+)"([^>]*)\/>/g)){for(let k=+c[1];k<=Math.min(+c[2],+c[1]+40);k++)if(!xs.includes(k))out.push([k,`<col min="${k}" max="${k}"${c[3]}/>`])}
+        for(const k of xs)out.push([k,`<col min="${k}" max="${k}" width="${PCI.xw}" customWidth="1"/>`]);
+        return'<cols>'+out.sort((a,b)=>a[0]-b[0]).map(x=>x[1]).join('')+'</cols>'});
+      sh=sh.replace(/<mergeCells count="(\d+)">/,(m,n)=>`<mergeCells count="${+n+1}"><mergeCell ref="${IC[0]}${T.hdrRow}:${IC[IC.length-1]}${T.hdrRow}"/>`);
+      sh=sh.replace(/(<brk id="\d+" max=")(\d+)(")/g,(m,a,n,b)=>a+Math.max(+n,lastCol-1)+b);
+      sh=sh.replace(/<dimension ref="([A-Z]+\d+):([A-Z]+)(\d+)"\/>/,(m,a,c,r)=>`<dimension ref="${a}:${pcColNo(c)<lastCol?IC[IC.length-1]:c}${r}"/>`);
+    }
+    sh=pcFitPrint(sh,Math.max(lastCol,pcColNo(T.col.img)+1));
     for(const{no:k,pic,more}of media)put(`xl/media/image${k}.jpeg`,await pcTile(pic,more));
     put('xl/worksheets/sheet1.xml',sh);
     put('xl/drawings/drawing1.xml',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">${pics}</xdr:wsDr>`);
@@ -470,7 +497,7 @@ async function pcSlide(p,items,idx,L,page,total,only,cont){
   g.textAlign='right';const ven=$('mUnit').value.trim();if(ven){g.fillStyle='#14191C';fitFont(g,ven,600,`600 #px ${FB}`,28,20);g.fillText(trunc(g,ven,600),W-M,80)}
   g.fillStyle='#55626A';g.font=`400 24px ${FB}`;g.fillText(vnDate($('mDate').value),W-M,ven?118:96);g.textAlign='left';g.fillStyle='#E3E8EA';g.fillRect(M,158,W-2*M,2);
   const top=188,bot=H-82,bh=bot-top,FW=980,FH=735,px=M,py=top+(bh-FH)/2,nos=items.map(x=>({...x,f:{...x.f,sev:''}}));
-  pcDraw(g,im,p,nos,px,py,FW,FH,{lw:Math.max(3.5,FW/340),r:clamp(FW/46,18,26),minFrac:items.length<=1?.42:.6,focus:true});g.strokeStyle='#D8E0EA';g.lineWidth=2;g.strokeRect(px,py,FW,FH);
+  pcDraw(g,im,p,nos,px,py,FW,FH,{lw:Math.max(3.5,FW/340),r:clamp(FW/46,18,26),minFrac:1});g.strokeStyle='#D8E0EA';g.lineWidth=2;g.strokeRect(px,py,FW,FH);
   const single=items.length<=1,x0=px+FW+52,tx=x0+(single?24:66),tw=W-M-tx,cols=colorsOf(items);
   let F=null;
   for(const z of[34,31,28,26,24,22,20,18,16]){const lh=Math.round(z*1.3),xs=Math.round(z*.88),xlh=Math.round(xs*1.3),cs=Math.max(15,Math.round(z*.62)),ch=Math.round(cs*1.55)+8,gap=Math.round(z*.9);let tot=0;
@@ -668,6 +695,20 @@ function pcItemBar(mob){
   return h('div',{class:'pc-ibar',role:'group','aria-label':'Lọc theo hạng mục'},h('span',{class:'pc-ibl'},'Hạng mục:'),
     ...[...cnt.keys()].sort((a,b)=>pcRank(a)-pcRank(b)).map(c=>{const v=RBA.codes[c],e=cnt.get(c);
       return h('button',{type:'button',class:'chip2 pc-ic'+(e.pend?' pend':''),'aria-pressed':String(cur===c),title:v.no?`Hạng mục ${v.no}. ${v.t}`:'EHS nguy hiểm khác',onclick:()=>set(c)},`${v.no?'HM '+v.no:'EHS'} · ${e.n}${e.pend?` (⏳${e.pend})`:''}`)}));
+}
+
+
+/* v1.1.1 — Một ảnh không ghi hai lỗi giống nhau: lỗi AI trùng (cùng vật thể, cùng nội dung) chỉ giữ một.
+   Nếu hai lỗi trùng thuộc hai hạng mục khác nhau: giữ lỗi của hạng mục trọng tâm, hạng mục kia thành "hạng mục có thể tính thêm" để người dùng chọn. */
+function pcDedupe(p){
+  if(!p||p.sample)return 0;const main=(p.analysis&&p.analysis.mainItem)||'';let n=0;
+  const rank=f=>(f.ok||f.src!=='ai'?1000:0)+(f.code===main?100:0)+(3-Math.min(3,pcSevRank(f)))*10+(Number(f.conf)||0)/100;
+  const fs=p.findings.slice().sort((a,b)=>rank(b)-rank(a)),keep=[];
+  for(const f of fs){const k=keep.find(x=>{try{return isDup(x,f)}catch{return false}});
+    if(k&&f.src==='ai'&&!f.ok){n++;if(f.code&&f.code!==k.code&&f.code!=='EH000'&&k.code!=='EH000'&&RBA.codes[f.code])k.xCand=[...new Set([...(k.xCand||[]),f.code])].slice(0,2);continue}
+    keep.push(f)}
+  if(n){const set=new Set(keep);p.findings=p.findings.filter(f=>set.has(f));p.analysis=p.analysis||{};p.analysis.verify=[`Đã gộp ${n} lỗi trùng nội dung trong cùng ảnh`,...(p.analysis.verify||[])].slice(0,8)}
+  return n;
 }
 
 window.__PC={photos:()=>S.photos,alts:pcAltList,main:pcMain,state:pcState,collect:pcCollect,st:()=>PC.st,xlsx:pcExportXlsx,pdf:()=>exportPdf(),guess:t=>{try{const g=qxGuess(t);return g&&RULES[g.id]?[g.id,RULES[g.id].c]:null}catch(e){return['ERR',e.message]}},freq:()=>pcFreqPrompt(),add:(c,fs,t,a,k)=>pcAddPhotos(c,fs,t,a,k),del:(p,f)=>pcDelPic(p,f),sel:(p,s)=>pcConfirmSel(p,s),asks:()=>pcAskList(),cat:()=>catGroups(),openCat:()=>openCat()};

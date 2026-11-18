@@ -27,6 +27,8 @@ a, sa, za = cells(tpl); b, sb, zb = cells(out)
 bad = []
 miss = sorted(set(a) - set(b)); extra = sorted(set(b) - set(a))
 if miss: bad.append(f'thiếu ô: {miss}')
+IC = LAY['imgCols']
+extra = [x for x in extra if re.sub(r'\d', '', x) not in IC[1:]]   # ô ở các cột ảnh thêm là hợp lệ
 if extra: bad.append(f'thừa ô: {extra}')
 editable = set(LAY['info'].values()) | {LAY['grade'], LAY['total']['score']}
 for r in ROWS.values(): editable |= {f"{C['score']}{r}", f"{C['res']}{r}", f"{C['text']}{r}"}
@@ -38,9 +40,23 @@ for ref in a:
 psA = re.search(r'<pageSetup[^>]*>', sa).group(0); psB = re.search(r'<pageSetup[^>]*>', sb).group(0)
 scA = int((re.search(r'scale="(\d+)"', psA) or [0, 100])[1]); scB = int((re.search(r'scale="(\d+)"', psB) or [0, 100])[1])
 if re.sub(r'\s*scale="\d+"', '', psA) != re.sub(r'\s*scale="\d+"', '', psB) or scB > scA: bad.append(f'khổ in đổi: {psA} -> {psB}')
-for k in ('<cols>', '<mergeCells', '<rowBreaks', '<pageMargins'):
-    x = lambda s: re.search(re.escape(k) + r'.*?(?:/>|</' + k[1:].split(' ')[0].rstrip('>') + '>)', s, flags=re.S)
-    if x(sa) and x(sa).group(0) != (x(sb).group(0) if x(sb) else None): bad.append(f'{k} đổi')
+def cols(sx):
+    d = {}
+    for m in re.finditer(r'<col min="(\d+)" max="(\d+)" width="([\d.]+)"([^>]*)/>', sx):
+        for k in range(int(m.group(1)), min(int(m.group(2)), 60) + 1): d[k] = (float(m.group(3)), 'hidden' in m.group(4))
+    return d
+def cn(c):
+    n = 0
+    for ch in c: n = n * 26 + ord(ch) - 64
+    return n
+ca, cb = cols(sa), cols(sb); xcols = {cn(c) for c in IC[1:]}
+for k in ca:
+    if k not in xcols and ca[k] != cb.get(k): bad.append(f'cột {k} đổi: {ca[k]} -> {cb.get(k)}')
+ma, mb = set(re.findall(r'<mergeCell ref="([^"]+)"', sa)), set(re.findall(r'<mergeCell ref="([^"]+)"', sb))
+if ma - mb: bad.append(f'mất ô gộp {ma - mb}')
+if any(not x.startswith(f"{IC[0]}{LAY['hdrRow']}:") for x in mb - ma): bad.append(f'thêm ô gộp lạ {mb - ma}')
+if re.findall(r'<brk id="(\d+)"', sa) != re.findall(r'<brk id="(\d+)"', sb): bad.append('ngắt trang đổi')
+if re.search(r'<pageMargins[^>]*>', sa).group(0) != re.search(r'<pageMargins[^>]*>', sb).group(0): bad.append('lề in đổi')
 if za.read('xl/styles.xml') != zb.read('xl/styles.xml'): bad.append('styles.xml đổi')
 rowpt = {}
 for r in ROWS.values():
@@ -68,17 +84,21 @@ anc = re.findall(r'<xdr:oneCellAnchor><xdr:from><xdr:col>(\d+)</xdr:col><xdr:col
 if not (nimg == nrel == len(anc)): bad.append(f'ảnh {nimg}, quan hệ {nrel}, neo {len(anc)}')
 E, colpx = 9525, LAY['px']['img']
 if len({(cx, cy) for *_, cx, cy in anc}) > 1: bad.append('ảnh không cùng kích thước')
-byrow = {}
+seen = set()
 for c, x, r, y, cx, cy in anc:
-    c, x, r, y, w, h = int(c), int(x) / E, int(r) + 1, int(y) / E, int(cx) / E, int(cy) / E
-    if c != LAY['imgCol0']: bad.append(f'ảnh ở cột {c} khác cột hình ảnh {LAY["imgCol0"]}')
+    c, x, r, y, w, h = int(c) + 1, int(x) / E, int(r) + 1, int(y) / E, int(cx) / E, int(cy) / E
+    if abs(w / h - 16 / 9) > .02: bad.append(f'ảnh dòng {r} không đúng tỷ lệ 16:9 ({w:.0f}x{h:.0f})')
+    if c not in [cn(k) for k in IC]: bad.append(f'ảnh ở cột {c} không phải cột ảnh'); continue
+    if (c, r) in seen: bad.append(f'ô cột {c} dòng {r} có hơn một ảnh')
+    seen.add((c, r))
     if r not in rowpt: bad.append(f'ảnh ở dòng {r} không phải dòng hạng mục'); continue
-    rp = rowpt[r] * 4 / 3
-    if x < 2 or y < 2 or x + w > colpx - 2 or y + h > rp - 2: bad.append(f'ảnh dòng {r} chạm/tràn viền ô ({x:.0f},{y:.0f},{w:.0f}x{h:.0f} trong {colpx}x{rp:.0f})')
-    byrow.setdefault(r, []).append((x, y, w, h))
-for r, ims in byrow.items():
-    rp = rowpt[r] * 4 / 3; l = min(i[0] for i in ims); rr = max(i[0] + i[2] for i in ims); t = min(i[1] for i in ims); bb = max(i[1] + i[3] for i in ims)
-    if abs(l - (colpx - rr)) > 2 or abs(t - (rp - bb)) > 2: bad.append(f'dòng {r}: khối ảnh chưa căn giữa (trái {l:.0f}/phải {colpx-rr:.0f}, trên {t:.0f}/dưới {rp-bb:.0f})')
+    cp = colpx if c == cn(IC[0]) else int(cb[c][0] * 7 + 5); rp = rowpt[r] * 4 / 3
+    if x < 2 or y < 2 or x + w > cp - 2 or y + h > rp - 2: bad.append(f'ảnh dòng {r} cột {c} chạm/tràn viền ô ({x:.0f},{y:.0f},{w:.0f}x{h:.0f} trong {cp}x{rp:.0f})')
+    if abs(x - (cp - x - w)) > 2 or abs(y - (rp - y - h)) > 2: bad.append(f'ảnh dòng {r} cột {c} chưa căn giữa (trái {x:.0f}/phải {cp-x-w:.0f}, trên {y:.0f}/dưới {rp-y-h:.0f})')
+# các cột ảnh của một dòng phải dùng liên tục từ cột đầu
+for r in {r for _, r in seen}:
+    used = sorted(c for c, rr in seen if rr == r)
+    if used != [cn(k) for k in IC[:len(used)]]: bad.append(f'dòng {r}: ảnh không xếp liên tục từ cột hình ảnh')
 size = f'{anc[0][4] and int(anc[0][4])//E}x{int(anc[0][5])//E}' if anc else '-'
 print(f'điểm {tot:g} hạng {g}; NG {ng}; ảnh {nimg} ({size} px); tỷ lệ in {scB}% (mẫu {scA}%); đầu trang: {[val(x) for x in LAY["info"].values()]}')
 print('ĐẠT' if not bad else 'LỖI:\n' + '\n'.join(bad)); sys.exit(1 if bad else 0)

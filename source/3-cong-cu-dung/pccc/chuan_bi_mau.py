@@ -48,6 +48,24 @@ def cells():
         st = re.search(r's="(\d+)"', attrs)
         out[(c, r)] = {'v': val, 'f': html.unescape(f.group(1)) if f else '', 's': int(st.group(1)) if st else 0}
     return out
+# --- v1.1.1: BỎ CÁC DÒNG TIÊU ĐỀ LẶP LẠI giữa bảng (theo yêu cầu người dùng); tiêu đề chỉ còn 1 dòng,
+#     khi in vẫn lặp ở đầu mỗi trang nhờ thiết lập "Print Titles" của Excel ---
+_h = sorted({r for (c, r), x in cells().items() if norm(x['v']) == 'no'}); DEL = _h[1:]
+if DEL:
+    mp = lambda r: r - sum(1 for d in DEL if d < r)
+    ref = lambda t: re.sub(r'(\$?[A-Z]{1,3}\$?)(\d+)', lambda m: m.group(1) + str(mp(int(m.group(2)))), t)
+    def _row(m):
+        r = int(m.group(1))
+        if r in DEL: return ''
+        if m.group(3) is None: return f'<row r="{mp(r)}"{m.group(2)}/>'
+        body = re.sub(r'<c r="([A-Z]+)\d+"', lambda c: f'<c r="{c.group(1)}{mp(r)}"', m.group(3))
+        body = re.sub(r'(<f[^>]*>)(.*?)(</f>)', lambda c: c.group(1) + ref(c.group(2)) + c.group(3), body, flags=re.S)
+        return f'<row r="{mp(r)}"{m.group(2)}>{body}</row>'
+    sheet = re.sub(r'<row r="(\d+)"((?:[^>/]|/(?!>))*)(?:/>|>(.*?)</row>)', _row, sheet, flags=re.S)
+    sheet = re.sub(r'(<mergeCell ref=")([^"]+)(")', lambda m: m.group(1) + ref(m.group(2)) + m.group(3), sheet)
+    sheet = re.sub(r'(sqref=")([^"]+)(")', lambda m: m.group(1) + ref(m.group(2)) + m.group(3), sheet)
+    sheet = re.sub(r'(<dimension ref=")([^"]+)(")', lambda m: m.group(1) + ref(m.group(2)) + m.group(3), sheet)
+    sheet = re.sub(r'<brk id="(\d+)"', lambda m: f'<brk id="{mp(int(m.group(1)))}"', sheet)
 C = cells()
 get = lambda c, r: C.get((c, r), {}).get('v', '')
 
@@ -92,6 +110,9 @@ ht = {}
 for m in re.finditer(r'<row r="(\d+)"([^>]*)>', sheet):
     h = re.search(r'ht="([\d.]+)"', m.group(2))
     if h: ht[int(m.group(1))] = float(h.group(1))
+# v1.1.1: cột nội dung NG rộng hơn để hiện đủ chữ (người dùng cho phép chỉnh cột này)
+TEXT_W = 76
+sheet = re.sub(rf'(<col min="{col2n(col["text"])}" max="{col2n(col["text"])}" width=")[\d.]+(")', rf'\g<1>{TEXT_W}\g<2>', sheet)
 widths = {}
 for m in re.finditer(r'<col min="(\d+)" max="(\d+)" width="([\d.]+)"', sheet):
     for i in range(int(m.group(1)), int(m.group(2)) + 1): widths[i] = float(m.group(3))
@@ -141,6 +162,9 @@ wr = files['xl/_rels/workbook.xml.rels'].decode('utf-8')
 files['xl/_rels/workbook.xml.rels'] = re.sub(r'<Relationship [^>]*calcChain[^>]*/>', '', wr).encode()
 wb = files['xl/workbook.xml'].decode('utf-8')
 wb = re.sub(r'<calcPr([^>]*?)/>', lambda m: '<calcPr' + re.sub(r'\s*fullCalcOnLoad="\w+"', '', m.group(1)) + ' fullCalcOnLoad="1"/>', wb) if '<calcPr' in wb else wb.replace('</workbook>', '<calcPr fullCalcOnLoad="1"/></workbook>')
+if DEL and '_xlnm.Print_Titles' not in wb:
+    sname = re.search(r'<sheet name="([^"]+)"', wb).group(1); dn = f'<definedName name="_xlnm.Print_Titles" localSheetId="0">\'{sname}\'!${H}:${H}</definedName>'
+    wb = wb.replace('</definedNames>', dn + '</definedNames>') if '<definedNames>' in wb else wb.replace('</sheets>', '</sheets><definedNames>' + dn + '</definedNames>')
 files['xl/workbook.xml'] = wb.encode()
 
 # --- kiểu ô nền vàng cho dòng NG ---
@@ -158,13 +182,25 @@ n0 = int(xfs.group(1))
 styles = styles.replace(xfs.group(0), f'<cellXfs count="{n0 + len(add)}">' + xfs.group(2) + ''.join(xf(f, h) for _, f, h in add) + '</cellXfs>', 1)
 st = {k: n0 + i for i, (k, _, _) in enumerate(add)}
 files['xl/styles.xml'] = styles.encode()
+sheet = re.sub(r' spans="[^"]*"', '', sheet)   # bỏ gợi ý spans để thêm cột ảnh không sai lệch
 files['xl/worksheets/sheet1.xml'] = sheet.encode()
 
 with zipfile.ZipFile(OUT, 'w', zipfile.ZIP_DEFLATED) as z:
     for n in ['[Content_Types].xml'] + [k for k in files if k != '[Content_Types].xml']: z.writestr(n, files[n])
 
-lay = {'hdr': hdr_rows, 'col': col, 'rows': {str(k): v for k, v in sorted(rows.items())}, 'total': {'row': tot_row, 'score': f"{col['score']}{tot_row}", 'std': f"{col['std']}{tot_row}"},
+# v1.1.1: các cột dùng để đặt ảnh, mỗi ô một ảnh: cột hình ảnh của mẫu rồi các cột liền kề bên phải
+#         (bỏ qua cột ẩn hoặc cột đã có dữ liệu, ví dụ cột danh sách OK/NG ẩn)
+hidden = set()
+for m in re.finditer(r'<col min="(\d+)" max="(\d+)"[^>]*hidden="1"', sheet):
+    hidden |= set(range(int(m.group(1)), int(m.group(2)) + 1))
+used = {col2n(c) for (c, r), x in C.items() if x['v'] or x['f']}
+img_cols, k = [col['img']], col2n(col['img'])
+while len(img_cols) < 8:
+    k += 1
+    if k in hidden or k in used: continue
+    img_cols.append(n2col(k))
+lay = {'hdr': hdr_rows, 'imgCols': img_cols, 'col': col, 'rows': {str(k): v for k, v in sorted(rows.items())}, 'total': {'row': tot_row, 'score': f"{col['score']}{tot_row}", 'std': f"{col['std']}{tot_row}"},
        'grade': grade, 'info': info, 'ht': {str(r): ht.get(r, 15) for r in sorted(item_rows)}, 'px': {'text': px(col['text']), 'img': px(col['img'])},
-       'imgCol0': col2n(col['img']) - 1, 'st': st}
+       'imgCol0': col2n(col['img']) - 1, 'imgStyle': C[(col['img'], rows[1])]['s'], 'hdrStyle': C[(col['img'], H)]['s'], 'hdrRow': H, 'st': st}
 LAY.write_text(json.dumps(lay, ensure_ascii=False, indent=1), encoding='utf-8')
 print('OK mẫu:', OUT.name, '| cột', col, '| dòng hạng mục', min(rows.values()), '…', max(rows.values()), '| tiêu đề lặp', hdr_rows, '| tổng', lay['total'], '| hạng', grade, '| thông tin', info, '| px', lay['px'])

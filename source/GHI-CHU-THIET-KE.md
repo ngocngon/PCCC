@@ -96,6 +96,15 @@ Phần A là quy tắc nghiệp vụ, không tự ý đổi. Phần B trở đi 
 - **Danh mục lỗi mẫu** tăng 90 → 119: thêm C16–C36 (tủ điện, đấu nối, dây ngoài tủ, hồ sơ bảo dưỡng điện) và E31–E38 (lối thoát nạn) theo danh sách 45 lỗi phổ biến người dùng cung cấp. Quy ước trọng tâm: mọi lỗi ở trong/trên tủ điện → hạng mục 14 (đã chuyển C8 "tủ điện bụi bẩn" từ 13 sang 14); dây ngoài tủ → 12; dây trong trần → 11; dây bỏ không → 13; cửa, lối, biển, đèn thoát nạn → 23 (chỉ cạnh nơi làm việc có lửa mới là 9); cửa chống cháy, lỗ xuyên tường/sàn ngăn cháy → 22; sơ đồ thoát nạn → 24; hồ sơ bảo dưỡng tủ điện → 25. Mốc 60°C không tự kết luận là lỗi. Lời nhắc AI (AIX_RULES, AREA_CK, mốc mức độ) cập nhật theo.
 - **Giao diện**: thanh lọc nhanh theo hạng mục ở Xác nhận lỗi (điện thoại và máy tính); thẻ lỗi điện thoại gọn, Sửa/Xác nhận/Xóa cùng một dòng; màn chấm điểm có lọc Tất cả / Chưa chấm / NG / OK, nút to hơn; khung chọn nhiều hạng mục có ô đánh dấu cùng dòng. Không đổi file Excel.
 
+### A3k. Bản v1.1.1: ảnh tổng quát, mỗi ô một ảnh 16:9, bỏ dòng tiêu đề lặp
+
+- **Ảnh báo cáo (PDF và Excel)**: không phóng sát lỗi nữa. Ảnh giữ toàn cảnh, chỉ cắt cho đúng tỷ lệ khung (minFrac 1), vùng cắt bám theo các khung khoanh lỗi.
+- **Một ảnh không ghi hai lỗi giống nhau**: lời nhắc AI cấm ghi trùng; sau khi AI soát, pcDedupe gộp các lỗi AI trùng (hàm isDup). Hai lỗi trùng khác hạng mục: giữ lỗi của hạng mục trọng tâm, hạng mục kia thành lựa chọn "tính thêm" cho người dùng.
+- **Excel, mỗi ô một ảnh**: ảnh 16:9 cùng một kích thước (hiện 235×132 px, tính từ hàng thấp nhất), căn giữa ô (trái = phải, trên = dưới). Hạng mục nhiều ảnh: ảnh tiếp theo sang ô liền kề bên phải (K, L, N, O…; bỏ qua cột M ẩn chứa danh sách OK/NG), tối đa 8 ảnh, ảnh thứ 8 ghi +n. Cột ảnh thêm rộng bằng ảnh + 2 lề 10 px; ô tiêu đề "Hình ảnh" gộp qua các cột ảnh. Hàng không còn cao thêm vì ảnh.
+- Lưu ý: 4 lề bằng nhau tuyệt đối không đạt được ở cột K vì độ rộng cột K và chiều cao hàng của mẫu cố định (hàng cao 160,5 / 127,5 / 114 pt) trong khi ảnh giữ một kích thước; ở các cột ảnh thêm, lề trái/phải = 10 px.
+- **Bỏ dòng tiêu đề lặp**: chuan_bi_mau.py xóa các dòng tiêu đề lặp giữa bảng (dòng 14, 24 của mẫu công ty), dồn dòng, sửa công thức, ô gộp, ngắt trang; 25 hạng mục nay ở dòng 8–32, tổng G33. Khi in, dòng tiêu đề vẫn lặp ở đầu mỗi trang nhờ Print Titles.
+- **Cột J (nội dung NG)** nới từ 58,3 lên 76 để hiện đủ chữ. Tỷ lệ in tự giảm theo cả chiều rộng và chiều cao.
+
 ### A4. File checklist (.xlsx) là mẫu cố định
 
 - Mẫu trống tạo từ file ví dụ người dùng gửi (`5-mau-checklist-pccc/mau-checklist-pccc.xlsx`). **Không đổi** hạng mục, phân loại, điểm tiêu chuẩn, thang xếp hạng, công thức, bề rộng cột, ô gộp, danh sách chọn OK/NG, khổ in.
@@ -184,6 +193,7 @@ Tiền tố `soat-pccc` cho IndexedDB và localStorage, nên chạy chung trình
 
 | Bản | Nội dung |
 |---|---|
+| **v1.1.1** | Ảnh báo cáo giữ toàn cảnh; gộp lỗi trùng trong một ảnh; Excel mỗi ô một ảnh 16:9, ảnh thêm sang ô liền kề; bỏ dòng tiêu đề lặp; cột J rộng hơn |
 | **v1.1.0** | PDF chỉ còn bìa (không điểm, không hạng) + trang ảnh, cắt ảnh tập trung vào lỗi; thêm 29 lỗi mẫu tủ điện và lối thoát nạn, quy tắc trọng tâm; tối ưu giao diện thao tác |
 | **v1.0.10** | PDF bỏ mức độ và biện pháp khắc phục, chỉ còn ảnh và lỗi vi phạm |
 | **v1.0.9** | PDF/Excel xuất đủ mọi lỗi (bỏ gộp lỗi lặp lại kiểu RBA); danh sách lỗi chi tiết có mức độ, khắc phục, lỗi EHS; chia trang không cắt dòng |
