@@ -82,6 +82,13 @@ Phần A là quy tắc nghiệp vụ, không tự ý đổi. Phần B trở đi 
 - Ảnh: mọi ảnh cùng một kích thước tính từ ô hình ảnh nhỏ nhất của mẫu (hiện 173×129 px), luôn căn giữa ô theo cả hai chiều, lề 10 px; 2 ảnh mỗi dòng. Chỉ hàng có chữ quá dài hoặc từ 3 ảnh trở lên mới cao hơn; khi đó app chỉ giảm tỷ lệ in để mỗi trang vẫn vừa 1 tờ A4 ngang theo ngắt trang của mẫu.
 - Kịch bản kiểm tra đọc `bo-cuc-mau.json`: kiểm tra ô cố định, công thức, cột, ô gộp, ngắt trang, styles, chiều cao hàng, điểm/kết quả, và ảnh (cùng kích thước, nằm trọn trong ô, khối ảnh căn giữa lệch ≤ 2 px).
 
+### A3i. Bản v1.0.9: PDF và Excel xuất đầy đủ mọi lỗi
+
+- Nguyên nhân thiếu lỗi: tính năng "gộp lỗi lặp lại khi xuất" thừa hưởng từ Audit RBA gộp các lỗi giống nhau ở nhiều vị trí thành một dòng "(lặp lại tại N vị trí)" và chỉ giữ một ảnh đại diện. Bản PCCC không dùng cơ chế này khi xuất: pcCollect lấy thẳng từng lỗi đã xác nhận của từng ảnh.
+- Trang "Nội dung NG theo hạng mục" thành danh sách lỗi chi tiết: mọi lỗi của mọi hạng mục NG (kể cả lỗi không ảnh), thêm mục "Lỗi EHS khác"; mỗi lỗi có khu vực: nội dung, bản dịch, mức độ, biện pháp khắc phục. Trước đây hạng mục dài hơn một trang bị cắt; nay chia sang trang sau với tiêu đề "(tiếp)", không bỏ dòng nào.
+- Trang ảnh: thêm dòng "Khắc phục"; ảnh có nhiều lỗi không vừa một trang thì chia sang trang nối tiếp cùng ảnh "(tiếp)".
+- Excel: nội dung cột NG liệt kê đủ mọi lỗi; ô hình ảnh vẫn tối đa 8 ảnh (ảnh cuối ghi +n) vì giới hạn chiều cao hàng 409 pt.
+
 ### A4. File checklist (.xlsx) là mẫu cố định
 
 - Mẫu trống tạo từ file ví dụ người dùng gửi (`5-mau-checklist-pccc/mau-checklist-pccc.xlsx`). **Không đổi** hạng mục, phân loại, điểm tiêu chuẩn, thang xếp hạng, công thức, bề rộng cột, ô gộp, danh sách chọn OK/NG, khổ in.
@@ -170,6 +177,7 @@ Tiền tố `soat-pccc` cho IndexedDB và localStorage, nên chạy chung trình
 
 | Bản | Nội dung |
 |---|---|
+| **v1.0.9** | PDF/Excel xuất đủ mọi lỗi (bỏ gộp lỗi lặp lại kiểu RBA); danh sách lỗi chi tiết có mức độ, khắc phục, lỗi EHS; chia trang không cắt dòng |
 | **v1.0.8** | Dùng mẫu checklist chuẩn của công ty (có dòng tiêu đề lặp mỗi trang); bố cục đọc tự động từ mẫu; ảnh cùng kích thước, căn giữa ô có lề; giữ hàng/cột/ngắt trang của mẫu, chỉ giảm tỷ lệ in khi cần |
 | **v1.0.7** | Sửa nhãn "Đạt" xanh sai trên trang lỗi trong PDF; Excel: hàng cố định không tự co giãn, cột nội dung và hình ảnh rộng hơn, cùng chiều cao hàng, in vừa trang ngang |
 | **v1.0.6** | Nút Chèn ảnh (ảnh xác nhận đạt hoặc ảnh lỗi) ở màn chấm điểm, xóa nhanh ảnh chèn nhầm; ảnh báo cáo phủ kín khung, cùng một kích thước; 25 hàng Excel cùng chiều cao, chỉ hàng quá nhiều chữ/ảnh mới cao hơn |

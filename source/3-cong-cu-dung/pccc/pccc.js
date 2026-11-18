@@ -231,13 +231,15 @@ gateExport=function(){const r=exportReady();if(r.ready)return true;toast(`Chưa 
 /* ---------- Dữ liệu xuất: lỗi theo hạng mục, đánh số trong từng hạng mục ---------- */
 function pcCollect(){
   const st=pcState(),skip=new Set(pcAltList().map(x=>x.f.id));
-  const groups=splitGroupsByCode(pcSortPhotos(S.photos).map(p=>gather().find(g=>g.p===p)).filter(Boolean).map(g=>({...g,items:g.items.filter(x=>!skip.has(x.f.id))})).filter(g=>g.items.length)),by=new Map(),ehs=[];
+  /* Báo cáo PCCC xuất MỌI lỗi đã xác nhận, từng ảnh một: KHÔNG gộp các lỗi giống nhau ở nhiều vị trí thành một dòng "lặp lại" như Audit RBA */
+  const raw=p=>{const items=p.findings.map((f,i)=>({f,n:i+1})).filter(x=>fin(x.f));return items.length?{p,items}:null};
+  const groups=splitGroupsByCode(pcSortPhotos(S.photos.filter(p=>!p.sample)).map(raw).filter(Boolean).map(g=>({...g,items:g.items.filter(x=>!skip.has(x.f.id))})).filter(g=>g.items.length)),by=new Map(),ehs=[];
   for(const g of groups){const c=pcCodeOf(g.items[0].f,g.p);if(c==='EH000'){ehs.push(g);continue}if(!by.has(c))by.set(c,[]);by.get(c).push(g)}
   /* lỗi được chọn tính thêm hạng mục phụ: ảnh xuất hiện thêm ở hạng mục đó */
   for(const p of pcSortPhotos(S.photos)){if(p.sample)continue;for(const[i,f]of p.findings.entries()){if(!fin(f)||skip.has(f.id))continue;
     for(const x of pcCodesOf(p,f).slice(1)){if(!by.has(x))by.set(x,[]);const gs=by.get(x);let g=gs.find(g=>g.p===p&&g.extra);if(!g){g={p,items:[],extra:true};gs.push(g)}g.items.push({f,n:i+1})}}}
   const rows=st.items.map(it=>{const gs=by.get(it.c)||[],ent=[],pics=[];let n=0;
-    for(const g of gs){const items=g.items.map(x=>({f:x.f,n:++n}));pics.push({p:g.p,items});for(const x of items)ent.push({a:g.p.qxg?'':String(g.p.area||'').trim(),t:String(x.f.title||'').trim()})}
+    for(const g of gs){const items=g.items.map(x=>({f:x.f,n:++n}));pics.push({p:g.p,items});for(const x of items)ent.push({a:g.p.qxg?'':String(g.p.area||'').trim(),t:String(x.f.title||'').trim(),f:x.f})}
     for(const nt of it.notes)ent.push({a:nt.a,t:nt.t,note:true});
     for(const p of pcSortPhotos(S.photos))if(!p.sample&&p.pcEvid===it.c)pics.push({p,items:[],ev:true});
     return{...it,st:ent.length?'NG':it.st,ent,pics}});
@@ -409,31 +411,62 @@ async function pcBoard(col,L,page,total){
   return c;
 }
 /* Danh sách NG: chia trang theo chiều cao chữ */
+/* Danh sách lỗi chi tiết: MỌI lỗi của mọi hạng mục NG (kể cả lỗi không ảnh) và lỗi EHS khác.
+   Mỗi lỗi: số thứ tự, khu vực: nội dung, mức độ, biện pháp khắc phục, bản dịch. Hạng mục dài được chia sang trang sau, không cắt bớt. */
+const PC_SEV={Priority:'Nghiêm trọng',Major:'Lớn',Minor:'Nhỏ'};
 function pcNgBlocks(col,L,FB){
   const m=mk(10,10).getContext('2d'),tw=PCW-2*PCM-90,out=[];
-  for(const r of col.rows){if(r.st!=='NG')continue;const lines=[];
-    r.ent.forEach((e,i)=>{m.font=`500 25px ${FB}`;const vi=`${r.ent.length>1?i+1+'. ':''}${e.a?e.a+': ':''}${e.t}`;for(const l of wrapX(m,vi,tw))lines.push({t:l,c:'#14191C',f:`500 25px ${FB}`,hh:34});
-      if(L!=='vi'){const x=lxT(L,e.t);if(x){m.font=`400 22px ${FB}`;const a=e.a?(lxT(L,e.a)||e.a)+': ':'';for(const l of wrapX(m,a+x,tw))lines.push({t:l,c:'#1F4E8C',f:`400 22px ${FB}`,hh:30})}}
-      lines.push({gap:8})});
-    out.push({r,lines,hh:58+lines.reduce((s,l)=>s+(l.gap||l.hh),0)+14})}
+  const mkLines=(ents)=>{const lines=[];ents.forEach((e,i)=>{
+      m.font=`600 25px ${FB}`;const vi=`${ents.length>1?i+1+'. ':''}${e.a?e.a+': ':''}${e.t}`;for(const l of wrapX(m,vi,tw))lines.push({t:l,c:'#14191C',f:`600 25px ${FB}`,hh:34,k:i});
+      if(L!=='vi'){const x=lxT(L,e.t);if(x){m.font=`400 22px ${FB}`;const a=e.a?(lxT(L,e.a)||e.a)+': ':'';for(const l of wrapX(m,a+x,tw))lines.push({t:l,c:'#1F4E8C',f:`400 22px ${FB}`,hh:30,k:i})}}
+      const f=e.f,meta=[];if(f&&PC_SEV[f.sev])meta.push(`Mức độ: ${PC_SEV[f.sev]}`);if(e.note)meta.push('Ghi nhận không kèm ảnh (hồ sơ / phỏng vấn)');
+      if(meta.length){m.font=`500 21px ${FB}`;for(const l of wrapX(m,meta.join(' · '),tw))lines.push({t:l,c:'#6B7780',f:`500 21px ${FB}`,hh:29,k:i})}
+      if(f&&String(f.fixNow||'').trim()){m.font=`400 21px ${FB}`;for(const l of wrapX(m,'Khắc phục: '+String(f.fixNow).trim(),tw))lines.push({t:l,c:'#166534',f:`400 21px ${FB}`,hh:29,k:i})}
+      lines.push({gap:12,k:i})});return lines};
+  for(const r of col.rows){if(r.st!=='NG')continue;out.push({head:{no:`${r.v.no}`,t:r.v.vi,s:`0/${r.v.pts}`,c:'#B91C1C'},lines:mkLines(r.ent)})}
+  const eh=col.ehs.flatMap(g=>g.items.map(x=>({a:g.p.qxg?'':String(g.p.area||'').trim(),t:String(x.f.title||'').trim(),f:x.f})));
+  if(eh.length)out.push({head:{no:'EHS',t:PCL.vi.ehs,s:'—',c:'#7C3AED'},lines:mkLines(eh)});
   return out;
 }
-function pcNgPages(blocks){const max=PCH-78-186,pages=[];let cur=[],hh=0;for(const b of blocks){if(cur.length&&hh+b.hh>max){pages.push(cur);cur=[];hh=0}cur.push(b);hh+=b.hh}if(cur.length)pages.push(cur);return pages}
+/* Chia trang theo từng dòng: không dòng nào bị bỏ; phần nối tiếp có tiêu đề "(tiếp)". Không tách giữa một lỗi nếu lỗi đó vừa một trang. */
+function pcNgPages(blocks){
+  const max=PCH-78-186,HEAD=58,END=14,pages=[];let cur=[],hh=0;
+  const flush=()=>{if(cur.length){pages.push(cur);cur=[];hh=0}};
+  for(const b of blocks){
+    const groups=[];for(const l of b.lines){const g=groups[groups.length-1];if(g&&g.k===l.k)g.ls.push(l);else groups.push({k:l.k,ls:[l]})}
+    let part={head:b.head,cont:false,lines:[]},ph=HEAD+END;
+    const room=()=>max-hh;
+    if(room()<HEAD+END+120)flush();
+    for(const g of groups){const gh=g.ls.reduce((s,l)=>s+(l.gap||l.hh),0);
+      if(ph+gh>room()&&part.lines.length){cur.push(part);hh+=ph;flush();part={head:b.head,cont:true,lines:[]};ph=HEAD+END}
+      for(const l of g.ls){const lh=l.gap||l.hh;if(ph+lh>room()&&part.lines.length){cur.push(part);hh+=ph;flush();part={head:b.head,cont:true,lines:[]};ph=HEAD+END}part.lines.push(l);ph+=lh}}
+    cur.push(part);hh+=ph}
+  flush();return pages;
+}
 function pcNgCanvas(blocks,L,FB,page,total,part,parts){
   const c=mk(PCW,PCH),g=c.getContext('2d');pcFrame(g,L,FB,PCL.vi.nglist+(parts>1?` (${part}/${parts})`:''),L==='vi'?'':PCL[L].nglist,page,total);
-  let y=186;const maxY=PCH-78;
-  for(const b of blocks){const v=b.r.v;g.fillStyle='#F3F6F8';g.fillRect(PCM,y,PCW-2*PCM,46);const w=pcChip(g,PCM+10,y+7,`${v.no}`,'#B91C1C',FB,21);
-    g.fillStyle='#14191C';g.font=`700 25px ${FB}`;g.fillText(trunc(g,v.vi,PCW-2*PCM-w-220),PCM+24+w,y+32);g.textAlign='right';g.fillStyle='#B91C1C';g.font=`700 25px ${FB}`;g.fillText(`0/${v.pts}`,PCW-PCM-14,y+32);g.textAlign='left';
-    y+=58;for(const l of b.lines){if(l.gap){y+=l.gap;continue}if(y+l.hh>maxY+4)break;g.fillStyle=l.c;g.font=l.f;g.fillText(l.t,PCM+70,y+l.hh*.74);y+=l.hh}y+=14}
+  let y=186;
+  for(const b of blocks){const h0=b.head;g.fillStyle='#F3F6F8';g.fillRect(PCM,y,PCW-2*PCM,46);const w=pcChip(g,PCM+10,y+7,h0.no,h0.c,FB,21);
+    g.fillStyle='#14191C';g.font=`700 25px ${FB}`;g.fillText(trunc(g,h0.t+(b.cont?' (tiếp)':''),PCW-2*PCM-w-220),PCM+24+w,y+32);g.textAlign='right';g.fillStyle=h0.c;g.font=`700 25px ${FB}`;g.fillText(h0.s,PCW-PCM-14,y+32);g.textAlign='left';
+    y+=58;for(const l of b.lines){if(l.gap){y+=l.gap;continue}g.fillStyle=l.c;g.font=l.f;g.fillText(l.t,PCM+70,y+l.hh*.74);y+=l.hh}y+=14}
   return c;
 }
+/* Trang ảnh có nhiều lỗi không vừa một trang (chữ nhỏ nhất 16 px) thì chia sang trang nối tiếp cùng ảnh, không bỏ lỗi nào */
+function pcSlideChunks(items,L,FB){
+  const m=mk(10,10).getContext('2d'),bh=(PCH-82)-188,tw=PCW-PCM-(PCM+980+52+66);
+  const hOf=(f,z)=>{const lh=Math.round(z*1.3),xs=Math.round(z*.88),xlh=Math.round(xs*1.3),cs=Math.max(15,Math.round(z*.62)),ch=Math.round(cs*1.55)+8;
+    m.font=`600 ${z}px ${FB}`;const tl=wrapX(m,f.title,tw).length,tr=L==='vi'?'':capOf(L,f.title);m.font=`500 ${xs}px ${FB}`;const xl=tr?wrapX(m,tr,tw).length:0,fx=String(f.fixNow||'').trim()?wrapX(m,'Khắc phục: '+f.fixNow,tw).length:0;
+    return ch+tl*lh+(xl?8+xl*xlh:0)+(fx?6+fx*xlh:0)+Math.round(z*.9)};
+  const all=items.reduce((s,x)=>s+hOf(x.f,16),0);if(all<=bh)return[items];
+  const out=[];let cur=[],hh=0;for(const x of items){const v=hOf(x.f,20);if(cur.length&&hh+v>bh){out.push(cur);cur=[];hh=0}cur.push(x);hh+=v}if(cur.length)out.push(cur);return out;
+}
 /* Một ảnh một trang: ảnh có khoanh vùng bên trái, lỗi kèm số hạng mục bên phải */
-async function pcSlide(p,items,idx,L,page,total,only){
+async function pcSlide(p,items,idx,L,page,total,only,cont){
   const im=await ensureImg(p);await fonts();
   const FB=fontL(L),W=PCW,H=PCH,M=PCM,c=mk(W,H),g=c.getContext('2d');
   g.fillStyle='#FFFFFF';g.fillRect(0,0,W,H);g.textBaseline='alphabetic';g.textAlign='left';g.fillStyle=PCNAVY;g.fillRect(0,0,W,10);
   rrect(g,M,40,88,88,16);g.fill();g.fillStyle='#FFFFFF';g.font=`700 46px ${fontD}`;g.textAlign='center';g.textBaseline='middle';g.fillText(String(idx+1).padStart(2,'0'),M+44,86);g.textAlign='left';g.textBaseline='alphabetic';
-  const area=String(p.area||'').trim()||`${CAPL.vi.photo} ${idx+1}`,areaX=L==='vi'?'':capOf(L,p.area),hx=M+116,hw=W-M-hx-640;
+  const area=(String(p.area||'').trim()||`${CAPL.vi.photo} ${idx+1}`)+(cont?' (tiếp)':''),areaX=L==='vi'?'':capOf(L,p.area),hx=M+116,hw=W-M-hx-640;
   g.fillStyle='#14191C';fitFont(g,area,hw,`700 #px ${FB}`,46,26);g.fillText(trunc(g,area,hw),hx,areaX?82:100);
   if(areaX){g.fillStyle='#1F4E8C';fitFont(g,areaX,hw,`500 #px ${FB}`,32,20);g.fillText(trunc(g,areaX,hw),hx,126)}
   g.textAlign='right';const ven=$('mUnit').value.trim();if(ven){g.fillStyle='#14191C';fitFont(g,ven,600,`600 #px ${FB}`,28,20);g.fillText(trunc(g,ven,600),W-M,80)}
@@ -443,7 +476,7 @@ async function pcSlide(p,items,idx,L,page,total,only){
   const single=items.length<=1,x0=px+FW+52,tx=x0+(single?24:66),tw=W-M-tx,cols=colorsOf(items);
   let F=null;
   for(const z of[34,31,28,26,24,22,20,18,16]){const lh=Math.round(z*1.3),xs=Math.round(z*.88),xlh=Math.round(xs*1.3),cs=Math.max(15,Math.round(z*.62)),ch=Math.round(cs*1.55)+8,gap=Math.round(z*.9);let tot=0;
-    const bl=items.map(({f,n})=>{g.font=`600 ${z}px ${FB}`;const tl=wrapX(g,f.title,tw),tr=L==='vi'?'':capOf(L,f.title);g.font=`500 ${xs}px ${FB}`;const xl=tr?wrapX(g,tr,tw):[];const hh=ch+tl.length*lh+(xl.length?8+xl.length*xlh:0);tot+=hh+gap;return{f,n,tl,xl,hh}});
+    const bl=items.map(({f,n})=>{g.font=`600 ${z}px ${FB}`;const tl=wrapX(g,f.title,tw),tr=L==='vi'?'':capOf(L,f.title);g.font=`500 ${xs}px ${FB}`;const xl=tr?wrapX(g,tr,tw):[];const fx=String(f.fixNow||'').trim()?wrapX(g,'Khắc phục: '+String(f.fixNow).trim(),tw):[];const hh=ch+tl.length*lh+(xl.length?8+xl.length*xlh:0)+(fx.length?6+fx.length*xlh:0);tot+=hh+gap;return{f,n,tl,xl,fx,hh}});
     tot-=gap;F={z,lh,xs,xlh,cs,ch,gap,bl,tot};if(tot<=bh)break}
   g.save();g.beginPath();g.rect(x0-6,top-6,W-M-x0+12,bh+12);g.clip();
   let y=top+Math.max(0,(bh-F.tot)/2);
@@ -453,6 +486,7 @@ async function pcSlide(p,items,idx,L,page,total,only){
     g.fillStyle='#55626A';g.font=`500 ${F.cs}px ${FB}`;g.fillText(trunc(g,eh?PCL.vi.ehs:okEv?`${v.t} · ${v.pts}/${v.pts}`:`${v.t} · 0/${v.pts}`,tw-cw-14),tx+cw+12,ty+F.cs*1.15);ty+=F.ch;
     g.textAlign='left';g.textBaseline='alphabetic';g.fillStyle='#14191C';g.font=`600 ${F.z}px ${FB}`;b.tl.forEach(l=>{g.fillText(l,tx,ty+F.lh*.78);ty+=F.lh});
     if(b.xl.length){ty+=8;g.fillStyle='#1F4E8C';g.font=`500 ${F.xs}px ${FB}`;b.xl.forEach(l=>{g.fillText(l,tx,ty+F.xlh*.78);ty+=F.xlh})}
+    if(b.fx.length){ty+=6;g.fillStyle='#166534';g.font=`500 ${F.xs}px ${FB}`;b.fx.forEach(l=>{g.fillText(l,tx,ty+F.xlh*.78);ty+=F.xlh})}
     y+=b.hh;if(i<F.bl.length-1){g.fillStyle='#E3E8EA';g.fillRect(x0,y+F.gap/2-1,W-M-x0,2);y+=F.gap}});
   g.restore();
   g.fillStyle='#8A979D';g.font=`400 22px ${FB}`;g.textAlign='left';g.fillText(capLab('rep',L),M,H-36);g.textAlign='right';g.fillText(`${page} / ${total}`,W-M,H-36);g.textAlign='left';
@@ -469,12 +503,13 @@ exportPdf=async function(){
     await fonts();const FB=fontL(L);
     /* Ảnh xếp đúng thứ tự hạng mục 1 → 25, mỗi trang một ảnh của một hạng mục (không gộp hạng mục), cuối cùng là lỗi EHS khác */
     const slides=[...col.rows.flatMap(r=>r.pics.map(pc=>({p:pc.p,items:pc.ev?[{f:{id:'ev'+pc.p.id,title:pc.p.pcNote||'Ảnh xác nhận hạng mục đạt yêu cầu',sev:'',pcEvidence:true,whole:true,s:{t:'rect',x:0,y:0,w:1,h:1}},n:1}]:pc.items,code:r.c}))),...col.ehs.map(g=>({p:g.p,items:g.items,code:'EH000'}))],ngPages=pcNgPages(pcNgBlocks(col,L,FB));
-    const N=2+ngPages.length+slides.length,pages=[];let pg=0;
+    const sl=[];let pno=-1;for(const x of slides){const ch=x.items[0]&&x.items[0].f.pcEvidence?[x.items]:pcSlideChunks(x.items,L,FB);pno++;ch.forEach((items,k)=>sl.push({...x,items,idx:pno,cont:k>0}))}
+    const N=2+ngPages.length+sl.length,pages=[];let pg=0;
     const push=async(c,q)=>{pages.push({blob:await toBlob(c,'image/jpeg',q||.88),w:c.width,h:c.height});c.width=c.height=0;await new Promise(r=>setTimeout(r,0))};
     say(`Đang tạo PDF ${++pg}/${N}…`);await push(await pcCover(col,L),.9);
     say(`Đang tạo PDF ${++pg}/${N}…`);await push(await pcBoard(col,L,pg,N),.9);
     for(const[i,bl]of ngPages.entries()){say(`Đang tạo PDF ${++pg}/${N}…`);await push(pcNgCanvas(bl,L,FB,pg,N,i+1,ngPages.length),.9)}
-    for(const[i,{p,items,code}]of slides.entries()){say(`Đang tạo PDF ${++pg}/${N}…`);await push(await pcSlide(p,items,i,L,pg,N,code),.86)}
+    for(const{p,items,code,idx,cont}of sl){say(`Đang tạo PDF ${++pg}/${N}…`);await push(await pcSlide(p,items,idx,L,pg,N,code,cont),.86)}
     const ven=$('mUnit').value.trim(),date=$('mDate').value||today();
     const blob=await buildPdf(pages,`${CAPL.vi.rep}${ven?' – '+ven:''} – ${vnDate(date)}`);
     await saveFile(`Bao-cao-nhanh-PCCC_${safeName(ven||'kiem-tra')}_${date.split('-').reverse().join('')}.pdf`,blob);
