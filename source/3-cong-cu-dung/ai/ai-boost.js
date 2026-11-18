@@ -38,10 +38,13 @@ const AREA_CK=[
     'Lỗ xuyên trần, xuyên tường quanh cáp, ống chưa bịt bằng vật liệu chống cháy (B8)','Đầu báo cháy: tuột dây, chỉ còn đế, bị bọc nilon, bị sơn (E1, E2); nhìn rõ phần lớn trần mà không có đầu báo (E5)','Đầu phun sprinkler bị che, sơn, hàng xếp quá sát (E10)']},
   {n:'Tủ điện, bảng phân phối, trạm điện',k:/t[uủ] đi[eệ]n|b[aả]ng đi[eệ]n|ph[oò]ng đi[eệ]n|tr[aạ]m|bi[eế]n [aá]p|m[aá]y ph[aá]t|aptomat|panel|mcc|ats|ngu[oồ]n/i,i:[
     'Dấu hiệu quá nhiệt: cháy sém, đổi màu, nhựa chảy ở đầu cos, aptomat, thanh cái (C9)','Vật dễ cháy, vật lạ trong tủ: giấy, giẻ, nilon, găng tay, đồ cá nhân (C10)',
-    'Hàng hóa, carton, pallet để sát hoặc chắn trước tủ (C11)','Cửa tủ mở, mất cửa, không khóa, thiếu tấm che phần mang điện (C12)','Tủ bẩn, bụi; đầu dây không bấm cos, lõi đồng tua ra (C8); dây thừa, dây cũ bỏ trong tủ (C6, C7)',
+    'Hàng hóa, carton, pallet để sát hoặc chắn trước tủ (C11)','Cửa tủ mở, mất cửa, không khóa, thiếu tấm che phần mang điện (C12)','Tủ bụi bẩn, dầu mỡ (C8); dây thừa, dây cũ bỏ trong tủ (C6, C7)',
+    'Đầu cos: không bấm chặt, sai cỡ, lõi đồng tòe (C16); chưa bọc cách điện, lộ kim loại (C17); nhiều dây đấu chung một cực (C25)','Dây trong tủ đổi màu, chảy nhựa (C18); aptomat, contactor cháy sém, nứt vỏ (C26); vết đánh lửa, muội đen (C32); ảnh nhiệt có điểm nóng (C20)',
+    'Ốc siết, bulông lỏng (C21); đầu nối, thanh cái gỉ, oxy hóa (C19); thanh cái không có tấm che (C22)','Lỗ cáp, lỗ kỹ thuật của tủ chưa bịt (C23); cửa tủ hỏng bản lề, khóa, không đóng kín (C24); nước thấm, đọng trong hoặc trên tủ (C30); quạt, lưới lọc tắc (C31)',
+    'Thiếu dây nối đất vỏ tủ, cửa tủ (C27); thiếu tên tủ, biển cảnh báo điện (C28); aptomat không nhãn mạch, không có sơ đồ điện (C29)',
     'Trạm điện, phòng máy phát, phòng kỹ thuật: vật dễ cháy để trong phòng (D2); không có bình chữa cháy hoặc bình cầu tự động (E11); không có đầu báo cháy (E5)','Lỗ luồn cáp vào tủ, xuyên tường chưa bịt kín (B8)']},
   {n:'Dây điện, ổ cắm, thiết bị điện tại xưởng',k:/d[aâ]y đi[eệ]n|ổ c[aắ]m|o cam|ph[ií]ch|c[aá]p|đi[eệ]n|electric|x[uư][oở]ng|chuy[eề]n|line/i,i:[
-    'Vỏ dây trầy, nứt, hở lõi, bị kẹp, bị đè (C1)','Dây tạm, dây kéo trên sàn, lối đi, vắt qua máy, rối không có máng (C2)','Ổ cắm kéo dài cắm nối tiếp, một ổ cắm chật kín phích (C3)',
+    'Vỏ dây trầy, nứt, hở lõi, bị kẹp, bị đè (C1)','Dây thả lỏng, không cố định, cọ vào cạnh sắc (C34); dây chui qua lỗ kim loại không có vòng đệm, ống lót (C35)','Dây tạm, dây kéo trên sàn, lối đi, vắt qua máy, rối không có máng (C2)','Ổ cắm kéo dài cắm nối tiếp, một ổ cắm chật kín phích (C3)',
     'Mối nối xoắn quấn băng keo, không hộp nối (C4)','Ổ cắm, phích, công tắc vỡ, cháy sém, cắm dây trần vào ổ (C5)','Dây không còn dùng treo lủng lẳng, đầu dây hở (C6)']},
   {n:'Máy móc, thiết bị sản xuất',k:/m[aá]y|thi[eế]t b[iị]|đ[oộ]ng c[oơ]|s[oơ]n|[eé]p|m[aạ]|anod|coating|inject|l[oò]|s[aấ]y|n[eé]n kh[ií]/i,i:[
     'Rò rỉ dầu, vũng dầu, giẻ dầu chất quanh máy (C13)','Bụi, xơ, bụi sơn, mạt bám dày trên động cơ, quạt, ống hút, tủ điều khiển (C14)','Dấu hiệu quá nhiệt: cháy sém, đổi màu, bốc khói (C15)',
@@ -55,7 +58,8 @@ const AREA_CK=[
     'Thiếu biển cấm lửa, cấm hút thuốc (E28); thiếu bình chữa cháy phù hợp (E11)','Vật dễ cháy khác, nguồn nhiệt, tia lửa gần kho (D9)']},
   {n:'Lối thoát nạn, cửa thoát hiểm, hành lang, cầu thang',k:/tho[aá]t|exit|h[aà]nh lang|c[aầ]u thang|l[oố]i đi|c[uử]a|corridor|stair/i,i:[
     'Cửa thoát nạn bị khóa, xích, niêm phong, chốt ngoài (E21)','Hàng hóa, thiết bị chắn trước hoặc sau cửa (E23); vật cản trên lối đi, cầu thang (E22)','Đèn EXIT, đèn chiếu sáng sự cố: thiếu, tắt, bị che (E24)',
-    'Chiều mở cửa: phải mở theo hướng thoát ra; cửa cuốn, cửa trượt làm lối thoát duy nhất (E25)','Cửa chống cháy bị chèn mở, tháo tay co, không tự khép (E17); hỏng gioăng, kính, khóa (E18)',
+    'Chiều mở cửa: phải mở theo hướng thoát ra; cửa cuốn, cửa trượt làm lối thoát duy nhất (E25)','Cửa thoát buộc dây, chèn, cài then (E37); hỏng tay nắm, thanh đẩy, kẹt (E36)',
+    'Lối thoát bị máy, kệ lấn làm hẹp (E34); sàn lối thoát có dầu, nước, dây, ống gây vấp (E35); phía ngoài cửa thoát bị hàng rào, xe, vật tư chắn (E33)','Biển, đèn EXIT bị hàng, thiết bị che khuất (E32); ngã rẽ không có biển chỉ hướng (E31); chỉ còn một lối ra, lối thứ hai bị bịt (E38)','Cửa chống cháy bị chèn mở, tháo tay co, không tự khép (E17); hỏng gioăng, kính, khóa (E18)',
     'Sơ đồ thoát nạn, danh sách liên lạc khẩn cấp, tiêu lệnh tại khu vực (E26, E27, E28)']},
   {n:'Bình chữa cháy, tủ họng nước, phòng bơm, tủ báo cháy',k:/b[iì]nh ch[uữ]a ch[aá]y|c[uứ]u h[oỏ]a|pccc|h[oọ]ng n[uư][oớ]c|sprinkler|b[oơ]m|b[aá]o ch[aá]y|van|fire/i,i:[
     'Bình: bị che chắn (E6); kim ngoài vùng xanh, mất chốt, vòi nứt, vỏ gỉ (E7); đặt trên sàn, sai vị trí (E8)','Tem, thẻ bảo dưỡng: đọc ngày, quá 6 tháng so với ngày kiểm tra hoặc không có tem (E16); phiếu kiểm tra hằng tháng bỏ trống (E15)',
@@ -75,18 +79,22 @@ const AIX_RULES=()=>`QUY TẮC CHỌN HẠNG MỤC
 - Chọn id theo VẬT THỂ chính và bản chất mối nguy, không theo tên khu vực. Ví dụ: bình chữa cháy bị che trong kho hóa chất thuộc hạng mục 20; dây điện quấn băng keo trong trần thuộc hạng mục 11; cùng lỗi đó ở dưới sàn xưởng thuộc hạng mục 12.
 - Phân biệt các cặp dễ nhầm:
   + Bình chữa cháy: thiếu tại vị trí đang hàn cắt là hạng mục 7; bị che, hỏng, thiếu tại khu vực thường là hạng mục 20; quá hạn bảo dưỡng, phiếu kiểm tra bỏ trống là hạng mục 21.
-  + Lối thoát nạn: bị vật tư thi công chắn cạnh nơi làm việc có lửa là hạng mục 9; các trường hợp khác là hạng mục 23.
+  + Lối thoát nạn (TRỌNG TÂM hạng mục 23): mọi lỗi của cửa thoát nạn, lối, hành lang, cầu thang thoát nạn thuộc hạng mục 23: bị hàng hóa, pallet, xe đẩy chắn; cửa bị khóa, buộc dây, chèn; cửa mở ngược chiều; hỏng tay nắm, thanh đẩy; lối bị thu hẹp do máy, kệ; sàn lối thoát có dầu, nước; phía ngoài cửa thoát bị hàng rào, xe chắn; biển EXIT, đèn chỉ dẫn, đèn chiếu sáng sự cố hỏng, thiếu, bị che. Chỉ khi lối thoát bị vật tư thi công chắn ngay cạnh nơi đang làm việc có lửa mới là hạng mục 9.
+  + Cửa chống cháy bị chèn mở, không tự đóng, cong vênh, mất gioăng là hạng mục 22 (không phải 23). Sơ đồ thoát nạn sai, cũ, không niêm yết là hạng mục 24.
+  + Vật che chắn: chắn lối, cửa thoát nạn là 23; chắn trước tủ điện là 14; che bình chữa cháy, họng nước, đầu phun là 20. Một đống hàng chắn cả lối thoát và tủ chữa cháy: "item" là hạng mục bị ảnh hưởng nặng nhất, hạng mục kia ghi vào "also_items".
   + Vật dễ cháy: quanh điểm hàn cắt là hạng mục 4; trong trần là hạng mục 10; trong hoặc quanh tủ điện là hạng mục 14; cạnh nguồn nhiệt là hạng mục 18; chất thải, bao bì để sai nơi là hạng mục 16; chất lỏng, khí dễ cháy là hạng mục 17.
-  + Dây điện: trong trần là hạng mục 11; dây hỏng vỏ, dây tạm, ổ cắm quá tải là hạng mục 12; dây không dùng bỏ lại, tủ điện bẩn, đầu dây không bấm cos là hạng mục 13; tủ điện quá nhiệt, có vật dễ cháy là hạng mục 14.
+  + Tủ điện, bảng phân phối điện (TRỌNG TÂM hạng mục 14): mọi lỗi nhìn thấy Ở TRONG hoặc TRÊN tủ điện, tủ điều khiển thuộc hạng mục 14: đầu cos không bấm, không bọc cách điện; điểm đấu nối, dây, aptomat cháy sém, đổi màu, chảy nhựa; ốc siết lỏng, gỉ; nhiều dây đấu chung một cực; thanh cái không có tấm che; tủ thiếu cửa, nắp, cửa không đóng kín; lỗ cáp chưa bịt; bụi bẩn, vật dễ cháy trong tủ; nước thấm vào tủ; quạt, lưới lọc tắc; thiếu nối đất, nhãn, sơ đồ; hàng hóa chắn trước tủ.
+  + Dây điện NGOÀI tủ: trong trần là hạng mục 11; dây hỏng vỏ, lộ lõi, dây tạm, lộn xộn, cọ cạnh sắc, mối nối băng keo, ổ cắm quá tải là hạng mục 12; dây, cáp không còn dùng bỏ lại, đầu dây thừa để hở là hạng mục 13 (kể cả khi nằm trong tủ).
+  + Nhiệt độ: chỉ báo "điểm nóng" khi ảnh có số đo hoặc ảnh nhiệt cho thấy bất thường so với điểm bên cạnh; không kết luận chỉ vì một mốc 60°C. Dấu hiệu quá nhiệt nhìn bằng mắt (đổi màu, chảy nhựa, cháy sém) thì báo bình thường.
   + Lỗ xuyên chưa bịt: xuyên trần, quanh cáp là hạng mục 11; trên tường, vách ngăn cháy là hạng mục 22.
 - Một ảnh có thể có lỗi của nhiều hạng mục; một hạng mục có thể có nhiều lỗi. Ghi đủ.
 - Hai id cùng khớp: chọn id có "dấu hiệu" trùng nhiều chi tiết nhìn thấy nhất và nêu chi tiết trong evidence.
 - "item" luôn là một trong 25 hạng mục của checklist (hoặc EH000); "rule" chỉ là lỗi mẫu bên trong hạng mục đó. Lỗi EHS thông thường không nguy hiểm lớn: không báo, không dùng EH000.
 
 MỐC MỨC ĐỘ (đối chiếu trước khi chọn)
-- Priority: cửa hoặc lối thoát nạn bị khóa, chặn hoàn toàn; tủ trung tâm báo cháy bị tắt, cô lập; hàn cắt ngay cạnh dung môi, khí dễ cháy; các lỗi EH000 đe dọa tính mạng tức thời.
-- Major: bình chữa cháy bị che, hỏng, quá hạn; đầu báo tuột dây, bị bọc; dây điện hở, mối nối băng keo, ổ cắm nối tiếp; vật dễ cháy trong tủ điện, trong trần, cạnh nguồn nhiệt; cửa chống cháy bị chèn mở; hàn cắt thiếu giấy phép, thiếu người giám sát lửa.
-- Minor: phiếu kiểm tra chưa cập nhật, niêm yết mờ, rách; bình đặt sai vị trí nhưng còn dùng được; rác tồn đọng ít; bụi trong trần.
+- Priority: cửa hoặc lối thoát nạn bị khóa, buộc, chặn hoàn toàn; cửa thoát hỏng không mở được; thanh cái, phần mang điện hở dễ chạm; dây, aptomat, điểm đấu nối cháy sém, đánh lửa, quá nhiệt rõ; nước vào tủ điện; tủ trung tâm báo cháy bị tắt, cô lập; hàn cắt ngay cạnh dung môi, khí dễ cháy; các lỗi EH000 đe dọa tính mạng tức thời.
+- Major: đầu cos không chắc, chi tiết đấu nối gỉ, tủ điện hở lỗ cáp, thiếu che chắn, cửa tủ hỏng; biển EXIT, đèn chiếu sáng sự cố không hoạt động; lối thoát bị thu hẹp; bình chữa cháy bị che, hỏng, quá hạn; đầu báo tuột dây, bị bọc; dây điện hở, mối nối băng keo, ổ cắm nối tiếp; vật dễ cháy trong tủ điện, trong trần, cạnh nguồn nhiệt; cửa chống cháy bị chèn mở; hàn cắt thiếu giấy phép, thiếu người giám sát lửa.
+- Minor: tủ điện bám bụi nhẹ, thiếu nhãn thiết bị, thiếu sơ đồ điện; phiếu kiểm tra chưa cập nhật, niêm yết mờ, rách; bình đặt sai vị trí nhưng còn dùng được; rác tồn đọng ít; bụi trong trần.
 
 `;
 const AIX_FIX=()=>`CÁCH VIẾT KHẮC PHỤC

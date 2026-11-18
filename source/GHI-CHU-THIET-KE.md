@@ -89,6 +89,13 @@ Phần A là quy tắc nghiệp vụ, không tự ý đổi. Phần B trở đi 
 - Trang ảnh: chỉ ảnh khoanh vùng và lỗi vi phạm; ảnh có nhiều lỗi không vừa một trang thì chia sang trang nối tiếp cùng ảnh "(tiếp)".
 - Excel: nội dung cột NG liệt kê đủ mọi lỗi; ô hình ảnh vẫn tối đa 8 ảnh (ảnh cuối ghi +n) vì giới hạn chiều cao hàng 409 pt.
 
+### A3j. Bản v1.1.0: PDF rút gọn, trọng tâm tủ điện và lối thoát nạn, tối ưu thao tác
+
+- **PDF** chỉ còn 1 trang bìa + các trang ảnh. Bỏ bảng điểm 25 hạng mục và trang "Nội dung NG theo hạng mục" (hàm pcBoard, pcNgBlocks, pcNgPages, pcNgCanvas vẫn còn trong mã nhưng không gọi). Trang bìa không ghi điểm, không xếp hạng; chỉ có thông tin đợt kiểm tra, số ảnh, số lỗi. Trang ảnh không ghi "0/điểm". Hệ quả: lỗi không kèm ảnh (ghi chú hồ sơ) chỉ còn trong Excel.
+- Trang ảnh chỉ có 1 lỗi: cắt ảnh tập trung vào vùng khoanh (minFrac .42, phóng tối đa khoảng 2,4 lần); nhiều lỗi: cắt theo vùng bao các khung (minFrac .6).
+- **Danh mục lỗi mẫu** tăng 90 → 119: thêm C16–C36 (tủ điện, đấu nối, dây ngoài tủ, hồ sơ bảo dưỡng điện) và E31–E38 (lối thoát nạn) theo danh sách 45 lỗi phổ biến người dùng cung cấp. Quy ước trọng tâm: mọi lỗi ở trong/trên tủ điện → hạng mục 14 (đã chuyển C8 "tủ điện bụi bẩn" từ 13 sang 14); dây ngoài tủ → 12; dây trong trần → 11; dây bỏ không → 13; cửa, lối, biển, đèn thoát nạn → 23 (chỉ cạnh nơi làm việc có lửa mới là 9); cửa chống cháy, lỗ xuyên tường/sàn ngăn cháy → 22; sơ đồ thoát nạn → 24; hồ sơ bảo dưỡng tủ điện → 25. Mốc 60°C không tự kết luận là lỗi. Lời nhắc AI (AIX_RULES, AREA_CK, mốc mức độ) cập nhật theo.
+- **Giao diện**: thanh lọc nhanh theo hạng mục ở Xác nhận lỗi (điện thoại và máy tính); thẻ lỗi điện thoại gọn, Sửa/Xác nhận/Xóa cùng một dòng; màn chấm điểm có lọc Tất cả / Chưa chấm / NG / OK, nút to hơn; khung chọn nhiều hạng mục có ô đánh dấu cùng dòng. Không đổi file Excel.
+
 ### A4. File checklist (.xlsx) là mẫu cố định
 
 - Mẫu trống tạo từ file ví dụ người dùng gửi (`5-mau-checklist-pccc/mau-checklist-pccc.xlsx`). **Không đổi** hạng mục, phân loại, điểm tiêu chuẩn, thang xếp hạng, công thức, bề rộng cột, ô gộp, danh sách chọn OK/NG, khổ in.
@@ -177,6 +184,7 @@ Tiền tố `soat-pccc` cho IndexedDB và localStorage, nên chạy chung trình
 
 | Bản | Nội dung |
 |---|---|
+| **v1.1.0** | PDF chỉ còn bìa (không điểm, không hạng) + trang ảnh, cắt ảnh tập trung vào lỗi; thêm 29 lỗi mẫu tủ điện và lối thoát nạn, quy tắc trọng tâm; tối ưu giao diện thao tác |
 | **v1.0.10** | PDF bỏ mức độ và biện pháp khắc phục, chỉ còn ảnh và lỗi vi phạm |
 | **v1.0.9** | PDF/Excel xuất đủ mọi lỗi (bỏ gộp lỗi lặp lại kiểu RBA); danh sách lỗi chi tiết có mức độ, khắc phục, lỗi EHS; chia trang không cắt dòng |
 | **v1.0.8** | Dùng mẫu checklist chuẩn của công ty (có dòng tiêu đề lặp mỗi trang); bố cục đọc tự động từ mẫu; ảnh cùng kích thước, căn giữa ô có lề; giữ hàng/cột/ngắt trang của mẫu, chỉ giảm tỷ lệ in khi cần |
