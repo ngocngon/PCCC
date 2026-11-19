@@ -497,7 +497,8 @@ async function pcSlide(p,items,idx,L,page,total,only,cont){
   if(areaX){g.fillStyle='#1F4E8C';fitFont(g,areaX,hw,`500 #px ${FB}`,32,20);g.fillText(trunc(g,areaX,hw),hx,126)}
   g.textAlign='right';const ven=$('mUnit').value.trim();if(ven){g.fillStyle='#14191C';fitFont(g,ven,600,`600 #px ${FB}`,28,20);g.fillText(trunc(g,ven,600),W-M,80)}
   g.fillStyle='#55626A';g.font=`400 24px ${FB}`;g.fillText(vnDate($('mDate').value),W-M,ven?118:96);g.textAlign='left';g.fillStyle='#E3E8EA';g.fillRect(M,158,W-2*M,2);
-  const top=188,bot=H-82,bh=bot-top,FW=980,FH=735,px=M,py=top+(bh-FH)/2,nos=items.map(x=>({...x,f:{...x.f,sev:''}}));
+  /* v1.1.3: GIỮ NGUYÊN ẢNH GỐC, không cắt: khung ảnh co theo đúng tỷ lệ của ảnh (ngang hay dọc), lỗi vẫn khoanh vùng trên ảnh */
+  const top=188,bot=H-82,bh=bot-top,iw0=(im&&(im.naturalWidth||im.width))||4,ih0=(im&&(im.naturalHeight||im.height))||3,fit=Math.min(980/iw0,bh/ih0),FW=Math.round(iw0*fit),FH=Math.round(ih0*fit),px=M,py=top+Math.round((bh-FH)/2),nos=items.map(x=>({...x,f:{...x.f,sev:''}}));
   pcDraw(g,im,p,nos,px,py,FW,FH,{lw:Math.max(3.5,FW/340),r:clamp(FW/46,18,26),minFrac:1});g.strokeStyle='#D8E0EA';g.lineWidth=2;g.strokeRect(px,py,FW,FH);
   const single=items.length<=1,x0=px+FW+52,tx=x0+(single?24:66),tw=W-M-tx,cols=colorsOf(items);
   let F=null;

@@ -111,6 +111,10 @@ Phần A là quy tắc nghiệp vụ, không tự ý đổi. Phần B trở đi 
 - Để 4 lề thực sự bằng nhau (10 px): cột ảnh thêm rộng bằng đúng cột K; **hàng có ảnh cao tối thiểu 165 pt** (ô 375×220 px, ảnh 355×200 px). Hàng không có ảnh giữ chiều cao của mẫu. Hàng phải cao hơn nữa vì chữ dài thì ảnh giữ 355×200, lề trên/dưới lớn hơn.
 - pcImgSize(rowPx) tính kích thước ảnh theo hàng; PCI.fullPt là chiều cao tối thiểu của hàng có ảnh. Kịch bản kiểm tra: tối đa 3 ảnh/hàng, 16:9, căn giữa, 4 lề 8–14 px ở hàng cao chuẩn.
 
+### A3m. Bản v1.1.3: PDF giữ nguyên ảnh gốc
+
+- Trang ảnh PDF không cắt ảnh nữa: khung ảnh co theo đúng tỷ lệ ảnh gốc (tối đa 980 px ngang, hết chiều cao thân trang), ảnh ngang hay dọc đều hiện trọn, lỗi khoanh vùng trên ảnh; cột chữ bắt đầu ngay sau ảnh. Excel vẫn là ô 16:9 (cắt theo tỷ lệ ô, bám vùng lỗi).
+
 ### A4. File checklist (.xlsx) là mẫu cố định
 
 - Mẫu trống tạo từ file ví dụ người dùng gửi (`5-mau-checklist-pccc/mau-checklist-pccc.xlsx`). **Không đổi** hạng mục, phân loại, điểm tiêu chuẩn, thang xếp hạng, công thức, bề rộng cột, ô gộp, danh sách chọn OK/NG, khổ in.
@@ -199,6 +203,7 @@ Tiền tố `soat-pccc` cho IndexedDB và localStorage, nên chạy chung trình
 
 | Bản | Nội dung |
 |---|---|
+| **v1.1.3** | PDF giữ nguyên ảnh gốc không cắt, kèm khoanh vùng lỗi |
 | **v1.1.2** | Excel: ảnh 4 lề đều 10 px, tối đa 3 ảnh một hàng, hàng có ảnh cao 165 pt |
 | **v1.1.1** | Ảnh báo cáo giữ toàn cảnh; gộp lỗi trùng trong một ảnh; Excel mỗi ô một ảnh 16:9, ảnh thêm sang ô liền kề; bỏ dòng tiêu đề lặp; cột J rộng hơn |
 | **v1.1.0** | PDF chỉ còn bìa (không điểm, không hạng) + trang ảnh, cắt ảnh tập trung vào lỗi; thêm 29 lỗi mẫu tủ điện và lối thoát nạn, quy tắc trọng tâm; tối ưu giao diện thao tác |
